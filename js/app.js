@@ -1,12 +1,13 @@
 // 版本信息
-const APP_VERSION = 'v1.5.0';
+const APP_VERSION = 'v1.6.0';
 const VERSION_NOTES = {
     'v1.0.0': '初始版本 - 基础刷题功能',
     'v1.1.0': '即时反馈 - 选择答案后立即显示对错',
     'v1.2.0': '错题持久化 - 错题自动保存到本地存储',
     'v1.3.0': '随机刷题 - 标签页切换、随机刷题、模拟考试',
     'v1.4.0': '学习统计 - 答题概况、章节分析、学习趋势、数据导出',
-    'v1.5.0': '登录系统 - 用户注册登录、云端数据同步'
+    'v1.5.0': '登录系统 - 用户注册登录、云端数据同步',
+    'v1.6.0': '功能增强 - 进度条、难度标记、题目收藏、题目搜索'
 };
 
 // Supabase配置
@@ -404,6 +405,68 @@ class StatsManager {
     }
 }
 
+// 收藏管理器
+class FavoriteManager {
+    constructor() {
+        this.favorites = this.loadFavorites();
+    }
+
+    // 加载收藏
+    loadFavorites() {
+        const saved = localStorage.getItem('java-quiz-favorites');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                return [];
+            }
+        }
+        return [];
+    }
+
+    // 保存收藏
+    saveFavorites() {
+        localStorage.setItem('java-quiz-favorites', JSON.stringify(this.favorites));
+    }
+
+    // 添加收藏
+    addFavorite(question) {
+        const exists = this.favorites.some(q => q.question === question.question);
+        if (!exists) {
+            this.favorites.push(question);
+            this.saveFavorites();
+            return true;
+        }
+        return false;
+    }
+
+    // 移除收藏
+    removeFavorite(questionText) {
+        const index = this.favorites.findIndex(q => q.question === questionText);
+        if (index !== -1) {
+            this.favorites.splice(index, 1);
+            this.saveFavorites();
+            return true;
+        }
+        return false;
+    }
+
+    // 是否已收藏
+    isFavorite(questionText) {
+        return this.favorites.some(q => q.question === questionText);
+    }
+
+    // 获取所有收藏
+    getFavorites() {
+        return [...this.favorites];
+    }
+
+    // 获取收藏数量
+    getCount() {
+        return this.favorites.length;
+    }
+}
+
 // 刷题系统主程序
 class QuizApp {
     constructor() {
@@ -429,6 +492,9 @@ class QuizApp {
 
         // 统计管理器
         this.statsManager = new StatsManager();
+
+        // 收藏管理器
+        this.favoriteManager = new FavoriteManager();
 
         // 认证管理器
         this.authManager = new AuthManager();
@@ -595,10 +661,22 @@ class QuizApp {
         });
         document.getElementById('start-btn').addEventListener('click', () => this.startQuiz());
         document.getElementById('wrong-btn').addEventListener('click', () => this.reviewWrong());
+        document.getElementById('favorite-btn').addEventListener('click', () => this.reviewFavorites());
         document.getElementById('clear-wrong-btn').addEventListener('click', () => {
             if (confirm('确定要清除所有错题记录吗？')) {
                 this.clearWrongQuestions();
             }
+        });
+
+        // 搜索相关
+        document.getElementById('search-btn').addEventListener('click', () => this.searchQuestions());
+        document.getElementById('search-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.searchQuestions();
+        });
+
+        // 收藏按钮（答题页）
+        document.getElementById('favorite-question-btn').addEventListener('click', () => {
+            this.toggleFavoriteCurrentQuestion();
         });
 
         // 随机刷题相关
@@ -1020,6 +1098,177 @@ class QuizApp {
         document.getElementById('selected-count').textContent = `已选：${count}题`;
     }
 
+    // 搜索题目
+    searchQuestions() {
+        const keyword = document.getElementById('search-input').value.trim().toLowerCase();
+        if (!keyword) {
+            document.getElementById('search-results').style.display = 'none';
+            return;
+        }
+
+        const results = [];
+        Object.entries(questions).forEach(([chapterKey, chapter]) => {
+            chapter.questions.forEach(q => {
+                if (q.question.toLowerCase().includes(keyword) ||
+                    q.explanation.toLowerCase().includes(keyword)) {
+                    results.push({ ...q, chapterKey, chapterName: chapter.name });
+                }
+            });
+        });
+
+        this.displaySearchResults(results);
+    }
+
+    // 显示搜索结果
+    displaySearchResults(results) {
+        const container = document.getElementById('search-results');
+        const list = document.getElementById('search-results-list');
+
+        if (results.length === 0) {
+            list.innerHTML = '<p style="text-align: center; color: #888;">没有找到相关题目</p>';
+            container.style.display = 'block';
+            return;
+        }
+
+        let html = `<p style="color: #888; margin-bottom: 10px;">找到 ${results.length} 道相关题目</p>`;
+        results.forEach((q, index) => {
+            const difficultyClass = q.difficulty ? `difficulty-${q.difficulty}` : '';
+            const difficultyText = q.difficulty === 'easy' ? '简单' :
+                                   q.difficulty === 'medium' ? '中等' :
+                                   q.difficulty === 'hard' ? '困难' : '';
+
+            html += `
+                <div class="search-result-item" onclick="app.startSearchQuiz(${index})">
+                    <div class="question-text">${q.question}</div>
+                    <span class="chapter-tag">${q.chapterName}</span>
+                    ${difficultyText ? `<span class="difficulty-tag ${difficultyClass}">${difficultyText}</span>` : ''}
+                </div>
+            `;
+        });
+
+        list.innerHTML = html;
+        container.style.display = 'block';
+
+        // 保存搜索结果用于后续使用
+        this.searchResults = results;
+    }
+
+    // 开始搜索结果的练习
+    startSearchQuiz(index) {
+        if (!this.searchResults || !this.searchResults[index]) return;
+
+        this.questions = [this.searchResults[index]];
+        this.totalQuestions = 1;
+        this.currentQuestionIndex = 0;
+        this.answers = {};
+        this.score = 0;
+        this.isReview = false;
+        this.isExamMode = false;
+        this.answeredQuestions = new Set();
+
+        document.getElementById('home-page').style.display = 'none';
+        document.getElementById('quiz-page').style.display = 'block';
+        document.getElementById('result-page').style.display = 'none';
+
+        this.renderQuestion();
+    }
+
+    // 收藏题目重做
+    reviewFavorites() {
+        const favorites = this.favoriteManager.getFavorites();
+        if (favorites.length === 0) {
+            alert('没有收藏的题目！');
+            return;
+        }
+
+        this.questions = [...favorites];
+        this.totalQuestions = this.questions.length;
+        this.currentQuestionIndex = 0;
+        this.answers = {};
+        this.score = 0;
+        this.isReview = true;
+        this.isExamMode = false;
+        this.answeredQuestions = new Set();
+
+        document.getElementById('home-page').style.display = 'none';
+        document.getElementById('quiz-page').style.display = 'block';
+        document.getElementById('result-page').style.display = 'none';
+
+        this.renderQuestion();
+    }
+
+    // 切换当前题目的收藏状态
+    toggleFavoriteCurrentQuestion() {
+        const question = this.questions[this.currentQuestionIndex];
+        if (!question) return;
+
+        const btn = document.getElementById('favorite-question-btn');
+        if (this.favoriteManager.isFavorite(question.question)) {
+            this.favoriteManager.removeFavorite(question.question);
+            btn.textContent = '❤ 收藏';
+            btn.classList.remove('active');
+        } else {
+            this.favoriteManager.addFavorite(question);
+            btn.textContent = '❤ 已收藏';
+            btn.classList.add('active');
+        }
+
+        this.updateFavoriteCount();
+    }
+
+    // 更新收藏数量显示
+    updateFavoriteCount() {
+        const count = this.favoriteManager.getCount();
+        const el = document.getElementById('favorite-count');
+        if (el) {
+            el.textContent = count > 0 ? `(${count})` : '';
+        }
+    }
+
+    // 更新进度条
+    updateProgressBar() {
+        const progressBar = document.getElementById('progress-bar');
+        if (progressBar && this.totalQuestions > 0) {
+            const progress = ((this.currentQuestionIndex + 1) / this.totalQuestions) * 100;
+            progressBar.style.width = progress + '%';
+        }
+    }
+
+    // 更新收藏按钮状态
+    updateFavoriteButton() {
+        const question = this.questions[this.currentQuestionIndex];
+        const btn = document.getElementById('favorite-question-btn');
+        if (question && btn) {
+            if (this.favoriteManager.isFavorite(question.question)) {
+                btn.textContent = '❤ 已收藏';
+                btn.classList.add('active');
+            } else {
+                btn.textContent = '❤ 收藏';
+                btn.classList.remove('active');
+            }
+        }
+    }
+
+    // 获取难度文本
+    getDifficultyText(difficulty) {
+        switch (difficulty) {
+            case 'easy': return '简单';
+            case 'medium': return '中等';
+            case 'hard': return '困难';
+            default: return '';
+        }
+    }
+
+    // 获取难度样式类
+    getDifficultyClass(difficulty) {
+        switch (difficulty) {
+            case 'easy': return 'difficulty-easy';
+            case 'medium': return 'difficulty-medium';
+            case 'hard': return 'difficulty-hard';
+            default: return '';
+        }
+    }
+
     // 显示认证消息
     showAuthMessage(message, type) {
         const el = document.getElementById('auth-message');
@@ -1038,9 +1287,12 @@ class QuizApp {
         document.getElementById('chapter-select').value = '';
         document.getElementById('chapter-info').style.display = 'none';
         document.getElementById('time-up-modal').style.display = 'none';
+        document.getElementById('search-results').style.display = 'none';
+        document.getElementById('search-input').value = '';
         this.answeredQuestions = new Set();
         this.isExamMode = false;
         this.updateWrongCount();
+        this.updateFavoriteCount();
     }
 
     // 更新错题数量显示
@@ -1322,7 +1574,15 @@ class QuizApp {
 
         progress.textContent = `第 ${this.currentQuestionIndex + 1} / ${this.totalQuestions} 题`;
 
-        let html = `<div class="question-text">${this.currentQuestionIndex + 1}. ${question.question}</div>`;
+        // 难度标记
+        let difficultyHtml = '';
+        if (question.difficulty) {
+            const difficultyText = this.getDifficultyText(question.difficulty);
+            const difficultyClass = this.getDifficultyClass(question.difficulty);
+            difficultyHtml = `<span class="difficulty-badge ${difficultyClass}">${difficultyText}</span>`;
+        }
+
+        let html = `${difficultyHtml}<div class="question-text">${this.currentQuestionIndex + 1}. ${question.question}</div>`;
 
         switch (question.type) {
             case 'single':
@@ -1344,6 +1604,10 @@ class QuizApp {
         container.innerHTML = html;
         this.updateButtons();
         this.bindAnswerEvents(question);
+
+        // 更新进度条和收藏按钮
+        this.updateProgressBar();
+        this.updateFavoriteButton();
 
         if (this.answeredQuestions.has(this.currentQuestionIndex)) {
             this.showFeedback(question, this.answers[this.currentQuestionIndex]);

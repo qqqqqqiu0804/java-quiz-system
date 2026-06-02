@@ -74,6 +74,17 @@
 
             <!-- 章节练习标签页 -->
             <div id="tab-chapter" class="tab-content active">
+                <!-- 搜索框 -->
+                <div class="card">
+                    <div class="search-box">
+                        <input type="text" id="search-input" placeholder="搜索题目关键词...">
+                        <button id="search-btn" class="btn btn-primary">搜索</button>
+                    </div>
+                    <div id="search-results" class="search-results" style="display: none;">
+                        <div id="search-results-list"></div>
+                    </div>
+                </div>
+
                 <div class="card">
                     <h2>选择章节</h2>
                     <select id="chapter-select">
@@ -90,6 +101,7 @@
                     <div class="btn-group">
                         <button id="start-btn" class="btn btn-primary">开始练习</button>
                         <button id="wrong-btn" class="btn btn-warning">错题重做 <span id="wrong-count"></span></button>
+                        <button id="favorite-btn" class="btn btn-success">收藏题目 <span id="favorite-count"></span></button>
                         <button id="clear-wrong-btn" class="btn btn-danger" style="display: none;">清除错题</button>
                     </div>
                 </div>
@@ -102,6 +114,8 @@
                         <li>最后一题点击"提交答案"</li>
                         <li>提交后可查看成绩和错题解析</li>
                         <li>错题会自动保存，可随时重做</li>
+                        <li>点击题目中的 ❤ 可收藏题目</li>
+                        <li>使用搜索框可快速查找题目</li>
                     </ul>
                 </div>
             </div>
@@ -269,7 +283,14 @@
         <div id="quiz-page" class="page" style="display: none;">
             <div class="quiz-header">
                 <span id="progress"></span>
-                <button id="home-btn" class="btn btn-small">返回首页</button>
+                <div class="quiz-header-right">
+                    <button id="favorite-question-btn" class="btn btn-small btn-favorite">❤ 收藏</button>
+                    <button id="home-btn" class="btn btn-small">返回首页</button>
+                </div>
+            </div>
+            <!-- 进度条 -->
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar"></div>
             </div>
             <div class="card">
                 <div id="question-container"></div>
