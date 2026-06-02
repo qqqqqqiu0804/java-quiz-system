@@ -1,5 +1,5 @@
 // 版本信息
-const APP_VERSION = 'v1.10.0';
+const APP_VERSION = 'v1.10.2';
 const VERSION_NOTES = {
     'v1.0.0': '初始版本 - 基础刷题功能',
     'v1.1.0': '即时反馈 - 选择答案后立即显示对错',
@@ -11,7 +11,9 @@ const VERSION_NOTES = {
     'v1.7.0': '历史记录 - 答题历史、错题导出',
     'v1.8.0': '成就系统 - 成就解锁、成就通知',
     'v1.9.0': '题库管理 - 自定义题库、题库导入导出',
-    'v1.10.0': '键盘快捷键 - 上下键切换题目、数字/字母键选择选项'
+    'v1.10.0': '键盘快捷键 - 上下键切换题目、数字/字母键选择选项',
+    'v1.10.1': '填空题快捷键 - Tab聚焦输入框、回车确认答案',
+    'v1.10.2': '判断题快捷键 - T/Y选择正确、F/N选择错误、随机算法优化'
 };
 
 // Supabase配置
@@ -1374,7 +1376,32 @@ class QuizApp {
                 e.preventDefault();
                 this.selectOptionByKey(e.key.charCodeAt(0) - 97);
                 break;
+
+            case 't':
+            case 'y':
+                // T或Y键：判断题选择正确
+                e.preventDefault();
+                this.selectJudgeOption(true);
+                break;
+
+            case 'f':
+            case 'n':
+                // F或N键：判断题选择错误
+                e.preventDefault();
+                this.selectJudgeOption(false);
+                break;
         }
+    }
+
+    // 选择判断题选项
+    selectJudgeOption(value) {
+        const options = document.querySelectorAll('input[name="answer"][type="radio"], input[name="exam-answer"][type="radio"]');
+        options.forEach(option => {
+            if (option.value === String(value)) {
+                option.checked = true;
+                option.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
     }
 
     // 通过键盘选择选项
@@ -2373,6 +2400,14 @@ class QuizApp {
     // 数组随机排序
     shuffleArray(array) {
         const shuffled = [...array];
+        // 使用更好的随机种子
+        const seed = Date.now();
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            // 使用更随机的方式
+            const j = Math.floor(((seed * (i + 1)) % (shuffled.length * 1000)) / 1000) % (i + 1);
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        // 再次打乱以增加随机性
         for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
