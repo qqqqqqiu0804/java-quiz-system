@@ -1648,6 +1648,155 @@ footer {
 }
 
 /* ============================================
+   Dashboard Styles
+   ============================================ */
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.dashboard-card {
+    background: var(--bg-primary);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    text-align: center;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    transition: all var(--transition-normal);
+}
+
+.dashboard-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.dashboard-card.primary {
+    border-left: 4px solid var(--accent-color);
+}
+
+.dashboard-card.success {
+    border-left: 4px solid var(--success-color);
+}
+
+.dashboard-card.warning {
+    border-left: 4px solid var(--warning-color);
+}
+
+.dashboard-card.danger {
+    border-left: 4px solid var(--error-color);
+}
+
+.dashboard-icon {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.dashboard-value {
+    font-size: var(--font-xxxl);
+    font-weight: bold;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.dashboard-label {
+    font-size: var(--font-sm);
+    color: var(--text-tertiary);
+}
+
+/* Heatmap */
+.mastery-heatmap {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+}
+
+.heatmap-cell {
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    text-align: center;
+    color: white;
+    font-weight: bold;
+    transition: all var(--transition-normal);
+}
+
+.heatmap-cell:hover {
+    transform: scale(1.05);
+}
+
+.heatmap-cell-name {
+    font-size: var(--font-xs);
+    margin-bottom: var(--spacing-xs);
+    opacity: 0.9;
+}
+
+.heatmap-cell-value {
+    font-size: var(--font-xl);
+}
+
+.heatmap-legend {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+}
+
+/* Recommendations */
+.recommendations {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.recommendation-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius);
+    border-left: 4px solid var(--accent-color);
+}
+
+.recommendation-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.recommendation-content {
+    flex: 1;
+}
+
+.recommendation-title {
+    font-weight: bold;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.recommendation-desc {
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+}
+
+/* ============================================
    Animations
    ============================================ */
 

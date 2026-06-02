@@ -1,5 +1,5 @@
 // 版本信息
-const APP_VERSION = 'v2.0.0';
+const APP_VERSION = 'v2.1.0';
 const VERSION_NOTES = {
     'v1.0.0': '初始版本 - 基础刷题功能',
     'v1.1.0': '即时反馈 - 选择答案后立即显示对错',
@@ -15,7 +15,9 @@ const VERSION_NOTES = {
     'v1.10.1': '填空题快捷键 - Tab聚焦输入框、回车确认答案',
     'v1.10.2': '判断题快捷键 - T/Y选择正确、F/N选择错误、随机算法优化',
     'v1.11.0': '错题复习计划 - 间隔重复算法、自动安排复习',
-    'v2.0.0': '视觉升级 - 主题系统、CSS变量、动画效果'
+    'v2.0.0': '视觉升级 - 主题系统、CSS变量、动画效果',
+    'v2.0.1': '主题配色优化 - 深色/清新绿/清爽蓝主题优化',
+    'v2.1.0': '数据大屏 - 知识点热力图、雷达图、智能推荐、分析报告'
 };
 
 // 主题管理器
@@ -1592,6 +1594,11 @@ class QuizApp {
             }
         });
 
+        // 导出报告相关
+        document.getElementById('export-report-btn').addEventListener('click', () => {
+            this.exportAnalysisReport();
+        });
+
         // 复习计划相关
         document.getElementById('start-review-btn').addEventListener('click', () => {
             this.startReview();
@@ -1836,6 +1843,11 @@ class QuizApp {
         // 切换到复习标签页时渲染复习计划
         if (tabName === 'review') {
             this.renderReviewPlan();
+        }
+
+        // 切换到数据大屏标签页时渲染
+        if (tabName === 'dashboard') {
+            this.renderDashboard();
         }
     }
 
@@ -2321,6 +2333,306 @@ class QuizApp {
         container.innerHTML = html;
     }
 
+    // 渲染数据大屏
+    renderDashboard() {
+        const stats = this.statsManager.getStats();
+        const maxStreak = this.getMaxStreak();
+        const mastery = this.reviewScheduler.getMasteryPercentage();
+
+        // 核心指标
+        document.getElementById('dash-total').textContent = stats.totalAnswered;
+        document.getElementById('dash-accuracy').textContent =
+            stats.totalAnswered > 0 ? Math.round((stats.totalCorrect / stats.totalAnswered) * 100) + '%' : '0%';
+        document.getElementById('dash-streak').textContent = maxStreak;
+        document.getElementById('dash-mastery').textContent = mastery + '%';
+
+        // 知识点掌握度热力图
+        this.renderMasteryHeatmap(stats);
+
+        // 章节能力雷达图
+        this.renderRadarChart(stats);
+
+        // 学习时间分布
+        this.renderTimeChart(stats);
+
+        // 错题知识点分布
+        this.renderWrongChart();
+
+        // 智能推荐
+        this.renderRecommendations(stats);
+    }
+
+    // 渲染掌握度热力图
+    renderMasteryHeatmap(stats) {
+        const container = document.getElementById('mastery-heatmap');
+        const chapterNames = {
+            'chapter1-2': '第1-2章 语法基础',
+            'chapter3': '第3章 流程控制',
+            'chapter4': '第4章 数组和字符串',
+            'chapter5': '第5章 面向对象基础',
+            'chapter6': '第6章 面向对象高级',
+            'chapter7': '第7章 异常',
+            'chapter9': '第9章 IO流'
+        };
+
+        let html = '';
+        Object.entries(stats.chapterStats).forEach(([key, val]) => {
+            const rate = val.answered > 0 ? Math.round((val.correct / val.answered) * 100) : 0;
+            let bgColor;
+            if (rate < 40) bgColor = '#ef4444';
+            else if (rate < 60) bgColor = '#f59e0b';
+            else if (rate < 80) bgColor = '#3b82f6';
+            else bgColor = '#22c55e';
+
+            html += `
+                <div class="heatmap-cell" style="background: ${bgColor};">
+                    <div class="heatmap-cell-name">${chapterNames[key] || key}</div>
+                    <div class="heatmap-cell-value">${rate}%</div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    // 渲染雷达图
+    renderRadarChart(stats) {
+        const ctx = document.getElementById('radar-chart');
+        if (!ctx) return;
+
+        const chapterNames = {
+            'chapter1-2': '语法基础',
+            'chapter3': '流程控制',
+            'chapter4': '数组字符串',
+            'chapter5': '面向对象',
+            'chapter6': '对象高级',
+            'chapter7': '异常',
+            'chapter9': 'IO流'
+        };
+
+        const labels = [];
+        const data = [];
+
+        Object.entries(stats.chapterStats).forEach(([key, val]) => {
+            labels.push(chapterNames[key] || key);
+            const rate = val.answered > 0 ? Math.round((val.correct / val.answered) * 100) : 0;
+            data.push(rate);
+        });
+
+        if (this.radarChart) this.radarChart.destroy();
+
+        this.radarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '正确率 (%)',
+                    data: data,
+                    backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                    borderColor: '#667eea',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#667eea',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#667eea'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            stepSize: 20
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+
+    // 渲染学习时间分布图
+    renderTimeChart(stats) {
+        const ctx = document.getElementById('time-chart');
+        if (!ctx) return;
+
+        // 按小时统计答题数量（模拟数据，实际需要记录答题时间）
+        const hours = Array.from({length: 24}, (_, i) => i + ':00');
+        const hourlyData = new Array(24).fill(0);
+
+        // 从历史记录中提取时间分布
+        const history = this.historyManager.getHistory();
+        history.forEach(record => {
+            const hour = new Date(record.date).getHours();
+            hourlyData[hour] += record.total || 0;
+        });
+
+        if (this.timeChart) this.timeChart.destroy();
+
+        this.timeChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: hours,
+                datasets: [{
+                    label: '答题数量',
+                    data: hourlyData,
+                    backgroundColor: 'rgba(102, 126, 234, 0.6)',
+                    borderColor: '#667eea',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 渲染错题知识点分布图
+    renderWrongChart() {
+        const ctx = document.getElementById('wrong-chart');
+        if (!ctx) return;
+
+        const chapterNames = {
+            'chapter1-2': '语法基础',
+            'chapter3': '流程控制',
+            'chapter4': '数组字符串',
+            'chapter5': '面向对象',
+            'chapter6': '对象高级',
+            'chapter7': '异常',
+            'chapter9': 'IO流'
+        };
+
+        // 统计错题分布
+        const wrongCounts = {};
+        this.wrongQuestions.forEach(q => {
+            const key = this.findChapterKey(q) || 'unknown';
+            wrongCounts[key] = (wrongCounts[key] || 0) + 1;
+        });
+
+        const labels = Object.keys(wrongCounts).map(k => chapterNames[k] || k);
+        const data = Object.values(wrongCounts);
+        const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#22c55e', '#8b5cf6', '#ec4899', '#06b6d4'];
+
+        if (this.wrongChart) this.wrongChart.destroy();
+
+        this.wrongChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors.slice(0, labels.length),
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    // 渲染智能推荐
+    renderRecommendations(stats) {
+        const container = document.getElementById('recommendations');
+        const recommendations = [];
+
+        // 分析薄弱知识点
+        Object.entries(stats.chapterStats).forEach(([key, val]) => {
+            if (val.answered >= 5) {
+                const rate = Math.round((val.correct / val.answered) * 100);
+                if (rate < 60) {
+                    recommendations.push({
+                        icon: '📚',
+                        title: '加强练习',
+                        desc: `第${key.replace('chapter', '')}章正确率仅${rate}%，建议多做练习题`
+                    });
+                }
+            }
+        });
+
+        // 分析复习情况
+        const todayReview = this.reviewScheduler.getTodayReviewCount();
+        if (todayReview > 0) {
+            recommendations.push({
+                icon: '🔄',
+                title: '今日复习',
+                desc: `有${todayReview}道题需要复习，建议及时复习巩固`
+            });
+        }
+
+        // 分析学习时间
+        const todayStudyTime = stats.todayStudyTime || 0;
+        if (todayStudyTime < 1800) { // 小于30分钟
+            recommendations.push({
+                icon: '⏰',
+                title: '学习时间',
+                desc: '今日学习时间不足30分钟，建议增加练习量'
+            });
+        }
+
+        // 分析连续答题
+        const maxStreak = this.getMaxStreak();
+        if (maxStreak < 10) {
+            recommendations.push({
+                icon: '🔥',
+                title: '提升连续答题',
+                desc: '当前最高连续答对数较少，建议专注练习提升准确率'
+            });
+        }
+
+        if (recommendations.length === 0) {
+            recommendations.push({
+                icon: '🎉',
+                title: '继续保持',
+                desc: '学习状态良好，继续保持！'
+            });
+        }
+
+        let html = '';
+        recommendations.forEach(rec => {
+            html += `
+                <div class="recommendation-item">
+                    <div class="recommendation-icon">${rec.icon}</div>
+                    <div class="recommendation-content">
+                        <div class="recommendation-title">${rec.title}</div>
+                        <div class="recommendation-desc">${rec.desc}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
     // 渲染复习计划
     renderReviewPlan() {
         const todayCount = this.reviewScheduler.getTodayReviewCount();
@@ -2476,6 +2788,135 @@ class QuizApp {
             notification.classList.remove('show');
             setTimeout(() => notification.remove(), 300);
         }, 3000);
+    }
+
+    // 导出分析报告
+    exportAnalysisReport() {
+        const stats = this.statsManager.getStats();
+        const maxStreak = this.getMaxStreak();
+        const mastery = this.reviewScheduler.getMasteryPercentage();
+        const history = this.historyManager.getHistory();
+
+        const chapterNames = {
+            'chapter1-2': '第1-2章 语法基础',
+            'chapter3': '第3章 流程控制',
+            'chapter4': '第4章 数组和字符串',
+            'chapter5': '第5章 面向对象基础',
+            'chapter6': '第6章 面向对象高级',
+            'chapter7': '第7章 异常',
+            'chapter9': '第9章 IO流'
+        };
+
+        let report = '╔════════════════════════════════════════════════════════════╗\n';
+        report += '║              Java期末考试刷题系统 - 学习分析报告              ║\n';
+        report += '╚════════════════════════════════════════════════════════════╝\n\n';
+        report += `报告生成时间：${new Date().toLocaleString()}\n\n`;
+
+        // 一、学习概况
+        report += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+        report += '【一、学习概况】\n';
+        report += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+        report += `总答题数：${stats.totalAnswered} 题\n`;
+        report += `正确数：${stats.totalCorrect} 题\n`;
+        report += `错误数：${stats.totalAnswered - stats.totalCorrect} 题\n`;
+        report += `总正确率：${stats.totalAnswered > 0 ? Math.round((stats.totalCorrect / stats.totalAnswered) * 100) : 0}%\n`;
+        report += `最高连续答对：${maxStreak} 题\n`;
+        report += `知识掌握度：${mastery}%\n`;
+        report += `累计学习时间：${this.formatTime(stats.totalStudyTime)}\n`;
+        report += `今日学习时间：${this.formatTime(stats.todayStudyTime)}\n\n`;
+
+        // 二、章节分析
+        report += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+        report += '【二、章节分析】\n';
+        report += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+
+        Object.entries(stats.chapterStats).forEach(([key, val]) => {
+            const rate = val.answered > 0 ? Math.round((val.correct / val.answered) * 100) : 0;
+            const bar = '█'.repeat(Math.round(rate / 5)) + '░'.repeat(20 - Math.round(rate / 5));
+            report += `${chapterNames[key] || key}：\n`;
+            report += `  答题：${val.answered}题 | 正确：${val.correct}题 | 正确率：${rate}%\n`;
+            report += `  [${bar}] ${rate}%\n\n`;
+        });
+
+        // 三、薄弱知识点
+        report += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+        report += '【三、薄弱知识点分析】\n';
+        report += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+
+        const weakChapters = [];
+        Object.entries(stats.chapterStats).forEach(([key, val]) => {
+            if (val.answered >= 3) {
+                const rate = Math.round((val.correct / val.answered) * 100);
+                if (rate < 70) {
+                    weakChapters.push({ name: chapterNames[key] || key, rate, answered: val.answered });
+                }
+            }
+        });
+
+        if (weakChapters.length > 0) {
+            weakChapters.sort((a, b) => a.rate - b.rate);
+            weakChapters.forEach((ch, i) => {
+                report += `${i + 1}. ${ch.name}：正确率${ch.rate}%（共答${ch.answered}题）\n`;
+            });
+            report += '\n建议：针对以上薄弱章节进行专项练习，巩固基础知识。\n\n';
+        } else {
+            report += '暂无明显薄弱知识点，继续保持！\n\n';
+        }
+
+        // 四、错题统计
+        report += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+        report += '【四、错题统计】\n';
+        report += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+        report += `当前错题数：${this.wrongQuestions.length} 题\n`;
+        report += `待复习题目：${this.reviewScheduler.getTodayReviewCount()} 题\n\n`;
+
+        if (this.wrongQuestions.length > 0) {
+            report += '错题列表：\n';
+            this.wrongQuestions.forEach((q, i) => {
+                report += `${i + 1}. ${q.question}\n`;
+            });
+            report += '\n';
+        }
+
+        // 五、学习建议
+        report += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+        report += '【五、学习建议】\n';
+        report += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+
+        const accuracy = stats.totalAnswered > 0 ? Math.round((stats.totalCorrect / stats.totalAnswered) * 100) : 0;
+
+        if (accuracy >= 90) {
+            report += '优秀！正确率超过90%，基础扎实。\n';
+            report += '建议：可以尝试更有难度的题目，挑战自己。\n\n';
+        } else if (accuracy >= 70) {
+            report += '良好！正确率在70%-90%之间。\n';
+            report += '建议：回顾错题，巩固薄弱知识点。\n\n';
+        } else if (accuracy >= 60) {
+            report += '及格！正确率在60%-70%之间。\n';
+            report += '建议：加强基础练习，重点关注错题涉及的知识点。\n\n';
+        } else {
+            report += '需要加强！正确率低于60%。\n';
+            report += '建议：系统复习各章节基础知识，多做练习题。\n\n';
+        }
+
+        if (this.reviewScheduler.getTodayReviewCount() > 0) {
+            report += '提醒：今日有待复习的题目，建议及时复习巩固记忆。\n\n';
+        }
+
+        report += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+        report += '                         报告结束\n';
+        report += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+
+        // 创建下载
+        const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `学习分析报告_${new Date().toISOString().split('T')[0]}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        alert('分析报告导出成功！');
     }
 
     // 导出错题

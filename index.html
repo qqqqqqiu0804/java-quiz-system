@@ -104,6 +104,7 @@
                 <button class="tab" data-tab="random">随机刷题</button>
                 <button class="tab" data-tab="exam">模拟考试</button>
                 <button class="tab" data-tab="review">错题复习 <span id="review-badge" class="badge" style="display: none;">0</span></button>
+                <button class="tab" data-tab="dashboard">数据大屏</button>
                 <button class="tab" data-tab="stats">学习统计</button>
                 <button class="tab" data-tab="history">答题历史</button>
                 <button class="tab" data-tab="achievements">成就系统</button>
@@ -264,6 +265,84 @@
 
                     <div class="btn-group">
                         <button id="start-exam-btn" class="btn btn-primary">开始考试</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据大屏标签页 -->
+            <div id="tab-dashboard" class="tab-content">
+                <!-- 核心指标 -->
+                <div class="dashboard-grid">
+                    <div class="dashboard-card primary">
+                        <div class="dashboard-icon">📊</div>
+                        <div class="dashboard-value" id="dash-total">0</div>
+                        <div class="dashboard-label">总答题数</div>
+                    </div>
+                    <div class="dashboard-card success">
+                        <div class="dashboard-icon">✅</div>
+                        <div class="dashboard-value" id="dash-accuracy">0%</div>
+                        <div class="dashboard-label">总正确率</div>
+                    </div>
+                    <div class="dashboard-card warning">
+                        <div class="dashboard-icon">🔥</div>
+                        <div class="dashboard-value" id="dash-streak">0</div>
+                        <div class="dashboard-label">最高连续</div>
+                    </div>
+                    <div class="dashboard-card danger">
+                        <div class="dashboard-icon">📚</div>
+                        <div class="dashboard-value" id="dash-mastery">0%</div>
+                        <div class="dashboard-label">知识掌握度</div>
+                    </div>
+                </div>
+
+                <!-- 知识点掌握度热力图 -->
+                <div class="card">
+                    <h2>🔥 知识点掌握度热力图</h2>
+                    <div id="mastery-heatmap" class="mastery-heatmap"></div>
+                    <div class="heatmap-legend">
+                        <span class="legend-item"><span class="legend-color" style="background: #ef4444;"></span> 0-40%</span>
+                        <span class="legend-item"><span class="legend-color" style="background: #f59e0b;"></span> 40-60%</span>
+                        <span class="legend-item"><span class="legend-color" style="background: #3b82f6;"></span> 60-80%</span>
+                        <span class="legend-item"><span class="legend-color" style="background: #22c55e;"></span> 80-100%</span>
+                    </div>
+                </div>
+
+                <!-- 章节正确率雷达图 -->
+                <div class="card">
+                    <h2>📈 章节能力雷达图</h2>
+                    <div class="chart-container">
+                        <canvas id="radar-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 学习时间分布 -->
+                <div class="card">
+                    <h2>⏰ 学习时间分布</h2>
+                    <div class="chart-container">
+                        <canvas id="time-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 错题知识点分布 -->
+                <div class="card">
+                    <h2>❌ 错题知识点分布</h2>
+                    <div class="chart-container">
+                        <canvas id="wrong-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 推荐复习 -->
+                <div class="card">
+                    <h2>💡 智能推荐</h2>
+                    <div id="recommendations" class="recommendations"></div>
+                </div>
+
+                <!-- 导出报告 -->
+                <div class="card">
+                    <h2>📄 导出分析报告</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 15px;">生成详细的学习分析报告，包含数据统计、图表分析和学习建议</p>
+                    <div class="btn-group">
+                        <button id="export-report-btn" class="btn btn-primary">导出分析报告</button>
                     </div>
                 </div>
             </div>
