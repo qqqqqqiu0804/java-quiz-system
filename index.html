@@ -87,6 +87,28 @@
                     </div>
                 </div>
 
+                <!-- 题库管理 -->
+                <div class="card">
+                    <h2>题库管理</h2>
+                    <div class="quiz-bank-selector">
+                        <label>
+                            <input type="radio" name="quiz-bank" value="system" checked>
+                            <span>系统题库（169题）</span>
+                        </label>
+                        <label id="custom-bank-label" style="display: none;">
+                            <input type="radio" name="quiz-bank" value="custom">
+                            <span id="custom-bank-name">自定义题库</span>
+                        </label>
+                    </div>
+                    <div class="btn-group">
+                        <button id="upload-quiz-btn" class="btn btn-primary">上传题库</button>
+                        <button id="download-template-btn" class="btn btn-success">下载模板</button>
+                        <button id="delete-custom-quiz-btn" class="btn btn-danger" style="display: none;">删除自定义题库</button>
+                    </div>
+                    <input type="file" id="quiz-file-input" accept=".json" style="display: none;">
+                    <div id="quiz-bank-info" class="quiz-bank-info"></div>
+                </div>
+
                 <div class="card">
                     <h2>选择章节</h2>
                     <select id="chapter-select">

@@ -334,6 +334,50 @@ select:focus {
     border-color: #667eea;
 }
 
+/* 题库选择器样式 */
+.quiz-bank-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.quiz-bank-selector label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.quiz-bank-selector label:hover {
+    border-color: #667eea;
+}
+
+.quiz-bank-selector label:has(input:checked) {
+    border-color: #667eea;
+    background: #667eea10;
+}
+
+.quiz-bank-selector input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #667eea;
+}
+
+.quiz-bank-info {
+    margin-top: 15px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    color: #666;
+    font-size: 0.95rem;
+    display: none;
+}
+
 .search-results {
     margin-top: 15px;
     max-height: 400px;

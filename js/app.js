@@ -1,5 +1,5 @@
 // 版本信息
-const APP_VERSION = 'v1.8.0';
+const APP_VERSION = 'v1.9.0';
 const VERSION_NOTES = {
     'v1.0.0': '初始版本 - 基础刷题功能',
     'v1.1.0': '即时反馈 - 选择答案后立即显示对错',
@@ -9,7 +9,8 @@ const VERSION_NOTES = {
     'v1.5.0': '登录系统 - 用户注册登录、云端数据同步',
     'v1.6.0': '功能增强 - 进度条、难度标记、题目收藏、题目搜索',
     'v1.7.0': '历史记录 - 答题历史、错题导出',
-    'v1.8.0': '成就系统 - 成就解锁、成就通知'
+    'v1.8.0': '成就系统 - 成就解锁、成就通知',
+    'v1.9.0': '题库管理 - 自定义题库、题库导入导出'
 };
 
 // Supabase配置
@@ -639,6 +640,191 @@ class AchievementManager {
     }
 }
 
+// 题库管理器
+class QuizBankManager {
+    constructor() {
+        this.customQuizBank = this.loadCustomQuizBank();
+    }
+
+    // 加载自定义题库
+    loadCustomQuizBank() {
+        const saved = localStorage.getItem('java-quiz-custom-bank');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    // 保存自定义题库
+    saveCustomQuizBank(bank) {
+        this.customQuizBank = bank;
+        localStorage.setItem('java-quiz-custom-bank', JSON.stringify(bank));
+    }
+
+    // 删除自定义题库
+    deleteCustomQuizBank() {
+        this.customQuizBank = null;
+        localStorage.removeItem('java-quiz-custom-bank');
+    }
+
+    // 获取自定义题库
+    getCustomQuizBank() {
+        return this.customQuizBank;
+    }
+
+    // 是否有自定义题库
+    hasCustomQuizBank() {
+        return this.customQuizBank !== null;
+    }
+
+    // 获取题库名称
+    getCustomQuizBankName() {
+        return this.customQuizBank?.name || '自定义题库';
+    }
+
+    // 获取自定义题库题目数量
+    getCustomQuizBankCount() {
+        if (!this.customQuizBank) return 0;
+        let count = 0;
+        Object.values(this.customQuizBank.chapters).forEach(chapter => {
+            count += chapter.questions.length;
+        });
+        return count;
+    }
+
+    // 验证题库格式
+    validateQuizBank(data) {
+        if (!data || typeof data !== 'object') {
+            return { valid: false, error: '无效的JSON格式' };
+        }
+
+        if (!data.name || typeof data.name !== 'string') {
+            return { valid: false, error: '缺少题库名称（name字段）' };
+        }
+
+        if (!data.chapters || typeof data.chapters !== 'object') {
+            return { valid: false, error: '缺少章节数据（chapters字段）' };
+        }
+
+        // 验证每个章节
+        for (const [key, chapter] of Object.entries(data.chapters)) {
+            if (!chapter.name || typeof chapter.name !== 'string') {
+                return { valid: false, error: `章节 ${key} 缺少名称` };
+            }
+
+            if (!Array.isArray(chapter.questions)) {
+                return { valid: false, error: `章节 ${key} 缺少题目数组` };
+            }
+
+            // 验证每道题
+            for (let i = 0; i < chapter.questions.length; i++) {
+                const q = chapter.questions[i];
+                const qNum = i + 1;
+
+                if (!q.question || typeof q.question !== 'string') {
+                    return { valid: false, error: `章节 ${key} 第 ${qNum} 题缺少题目内容` };
+                }
+
+                if (!['single', 'multi', 'judge', 'fill'].includes(q.type)) {
+                    return { valid: false, error: `章节 ${key} 第 ${qNum} 题类型无效（应为 single/multi/judge/fill）` };
+                }
+
+                if (q.type === 'single' || q.type === 'multi') {
+                    if (!Array.isArray(q.options) || q.options.length < 2) {
+                        return { valid: false, error: `章节 ${key} 第 ${qNum} 题选项不足` };
+                    }
+                    if (q.answer === undefined || q.answer === null) {
+                        return { valid: false, error: `章节 ${key} 第 ${qNum} 题缺少答案` };
+                    }
+                }
+
+                if (q.type === 'judge') {
+                    if (typeof q.answer !== 'boolean') {
+                        return { valid: false, error: `章节 ${key} 第 ${qNum} 题答案应为 true/false` };
+                    }
+                }
+
+                if (q.type === 'fill') {
+                    if (!Array.isArray(q.answer) || q.answer.length === 0) {
+                        return { valid: false, error: `章节 ${key} 第 ${qNum} 题答案应为数组` };
+                    }
+                }
+
+                if (!q.explanation || typeof q.explanation !== 'string') {
+                    return { valid: false, error: `章节 ${key} 第 ${qNum} 题缺少解析` };
+                }
+            }
+        }
+
+        return { valid: true };
+    }
+
+    // 导入题库
+    importQuizBank(jsonString) {
+        try {
+            const data = JSON.parse(jsonString);
+            const validation = this.validateQuizBank(data);
+
+            if (!validation.valid) {
+                return { error: validation.error };
+            }
+
+            this.saveCustomQuizBank(data);
+            return { success: true, name: data.name, count: this.getCustomQuizBankCount() };
+        } catch (e) {
+            return { error: 'JSON解析失败：' + e.message };
+        }
+    }
+
+    // 生成模板
+    getTemplate() {
+        return {
+            name: "我的题库",
+            chapters: {
+                "chapter1": {
+                    name: "第一章 示例章节",
+                    questions: [
+                        {
+                            type: "single",
+                            question: "这是一道单选题示例",
+                            options: ["选项A", "选项B", "选项C", "选项D"],
+                            answer: 0,
+                            explanation: "这是解析，说明为什么选A",
+                            difficulty: "easy"
+                        },
+                        {
+                            type: "multi",
+                            question: "这是一道多选题示例",
+                            options: ["选项A", "选项B", "选项C", "选项D"],
+                            answer: [0, 2],
+                            explanation: "这是解析，说明为什么选A和C",
+                            difficulty: "medium"
+                        },
+                        {
+                            type: "judge",
+                            question: "这是一道判断题示例",
+                            answer: true,
+                            explanation: "这是解析，说明为什么正确",
+                            difficulty: "easy"
+                        },
+                        {
+                            type: "fill",
+                            question: "Java中用于定义类的关键字是_______",
+                            answer: ["class"],
+                            explanation: "Java使用class关键字定义类",
+                            difficulty: "easy"
+                        }
+                    ]
+                }
+            }
+        };
+    }
+}
+
 // 刷题系统主程序
 class QuizApp {
     constructor() {
@@ -674,6 +860,12 @@ class QuizApp {
         // 成就管理器
         this.achievementManager = new AchievementManager();
 
+        // 题库管理器
+        this.quizBankManager = new QuizBankManager();
+
+        // 当前使用的题库
+        this.currentQuizBank = 'system'; // 'system' 或 'custom'
+
         // 认证管理器
         this.authManager = new AuthManager();
 
@@ -689,6 +881,7 @@ class QuizApp {
 
     init() {
         this.loadWrongQuestions();
+        this.initQuizBank();
         this.bindEvents();
         this.showVersion();
 
@@ -701,6 +894,52 @@ class QuizApp {
                 this.showLoginPage();
             }
         }, 100);
+    }
+
+    // 初始化题库
+    initQuizBank() {
+        // 检查是否有自定义题库
+        if (this.quizBankManager.hasCustomQuizBank()) {
+            const savedBank = localStorage.getItem('java-quiz-current-bank');
+            this.currentQuizBank = savedBank || 'system';
+        }
+
+        this.updateQuizBankUI();
+    }
+
+    // 更新题库UI
+    updateQuizBankUI() {
+        const hasCustom = this.quizBankManager.hasCustomQuizBank();
+        const customLabel = document.getElementById('custom-bank-label');
+        const customName = document.getElementById('custom-bank-name');
+        const deleteBtn = document.getElementById('delete-custom-quiz-btn');
+        const info = document.getElementById('quiz-bank-info');
+
+        if (hasCustom) {
+            customLabel.style.display = 'flex';
+            customName.textContent = `${this.quizBankManager.getCustomQuizBankName()}（${this.quizBankManager.getCustomQuizBankCount()}题）`;
+            deleteBtn.style.display = 'inline-block';
+
+            // 设置选中状态
+            const radio = document.querySelector(`input[name="quiz-bank"][value="${this.currentQuizBank}"]`);
+            if (radio) radio.checked = true;
+
+            info.style.display = 'block';
+            info.textContent = `当前使用：${this.currentQuizBank === 'system' ? '系统题库' : this.quizBankManager.getCustomQuizBankName()}`;
+        } else {
+            customLabel.style.display = 'none';
+            deleteBtn.style.display = 'none';
+            info.style.display = 'none';
+            this.currentQuizBank = 'system';
+        }
+    }
+
+    // 获取当前题库
+    getCurrentQuestions() {
+        if (this.currentQuizBank === 'custom' && this.quizBankManager.hasCustomQuizBank()) {
+            return this.quizBankManager.getCustomQuizBank().chapters;
+        }
+        return questions;
     }
 
     // 显示登录页面
@@ -850,6 +1089,62 @@ class QuizApp {
         document.getElementById('search-btn').addEventListener('click', () => this.searchQuestions());
         document.getElementById('search-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.searchQuestions();
+        });
+
+        // 题库管理相关
+        document.querySelectorAll('input[name="quiz-bank"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.currentQuizBank = e.target.value;
+                localStorage.setItem('java-quiz-current-bank', this.currentQuizBank);
+                this.updateQuizBankUI();
+            });
+        });
+
+        document.getElementById('upload-quiz-btn').addEventListener('click', () => {
+            document.getElementById('quiz-file-input').click();
+        });
+
+        document.getElementById('quiz-file-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const result = this.quizBankManager.importQuizBank(event.target.result);
+                    if (result.error) {
+                        alert('导入失败：' + result.error);
+                    } else {
+                        alert(`导入成功！题库"${result.name}"共${result.count}题`);
+                        this.currentQuizBank = 'custom';
+                        localStorage.setItem('java-quiz-current-bank', 'custom');
+                        this.updateQuizBankUI();
+                        this.loadChapterOptions();
+                    }
+                };
+                reader.readAsText(file);
+            }
+            e.target.value = ''; // 清空input
+        });
+
+        document.getElementById('download-template-btn').addEventListener('click', () => {
+            const template = this.quizBankManager.getTemplate();
+            const blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '题库模板.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('delete-custom-quiz-btn').addEventListener('click', () => {
+            if (confirm('确定要删除自定义题库吗？')) {
+                this.quizBankManager.deleteCustomQuizBank();
+                this.currentQuizBank = 'system';
+                localStorage.setItem('java-quiz-current-bank', 'system');
+                this.updateQuizBankUI();
+                this.loadChapterOptions();
+                alert('自定义题库已删除');
+            }
         });
 
         // 收藏按钮（答题页）
@@ -1307,8 +1602,9 @@ class QuizApp {
             return;
         }
 
+        const currentQuestions = this.getCurrentQuestions();
         const results = [];
-        Object.entries(questions).forEach(([chapterKey, chapter]) => {
+        Object.entries(currentQuestions).forEach(([chapterKey, chapter]) => {
             chapter.questions.forEach(q => {
                 if (q.question.toLowerCase().includes(keyword) ||
                     q.explanation.toLowerCase().includes(keyword)) {
@@ -1694,6 +1990,7 @@ class QuizApp {
         this.isExamMode = false;
         this.updateWrongCount();
         this.updateFavoriteCount();
+        this.loadChapterOptions();
     }
 
     // 更新错题数量显示
@@ -1713,7 +2010,8 @@ class QuizApp {
     }
 
     loadChapter(chapterKey) {
-        const chapter = questions[chapterKey];
+        const currentQuestions = this.getCurrentQuestions();
+        const chapter = currentQuestions[chapterKey];
         if (chapter) {
             this.currentChapter = chapterKey;
             const info = document.getElementById('chapter-info');
@@ -1725,6 +2023,27 @@ class QuizApp {
         }
     }
 
+    // 加载章节选项
+    loadChapterOptions() {
+        const currentQuestions = this.getCurrentQuestions();
+        const select = document.getElementById('chapter-select');
+
+        // 清空现有选项
+        select.innerHTML = '<option value="">-- 请选择章节 --</option>';
+
+        // 添加新选项
+        Object.entries(currentQuestions).forEach(([key, chapter]) => {
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = `${chapter.name}（${chapter.questions.length}题）`;
+            select.appendChild(option);
+        });
+
+        // 清空章节信息
+        document.getElementById('chapter-info').style.display = 'none';
+        this.currentChapter = null;
+    }
+
     // 开始章节练习
     startQuiz() {
         if (!this.currentChapter) {
@@ -1732,7 +2051,8 @@ class QuizApp {
             return;
         }
 
-        const chapter = questions[this.currentChapter];
+        const currentQuestions = this.getCurrentQuestions();
+        const chapter = currentQuestions[this.currentChapter];
         this.questions = [...chapter.questions];
         this.totalQuestions = this.questions.length;
         this.currentQuestionIndex = 0;
@@ -1779,16 +2099,17 @@ class QuizApp {
     startRandomQuiz() {
         const mode = document.querySelector('input[name="random-mode"]:checked').value;
         let availableQuestions = [];
+        const currentQuestions = this.getCurrentQuestions();
 
         if (mode === 'all') {
             // 全部章节
-            Object.values(questions).forEach(chapter => {
+            Object.values(currentQuestions).forEach(chapter => {
                 availableQuestions.push(...chapter.questions);
             });
         } else {
             // 选中的章节
             document.querySelectorAll('#chapter-checkboxes input[type="checkbox"]:checked').forEach(cb => {
-                const chapter = questions[cb.value];
+                const chapter = currentQuestions[cb.value];
                 if (chapter) {
                     availableQuestions.push(...chapter.questions);
                 }
@@ -1837,7 +2158,8 @@ class QuizApp {
     // 开始模拟考试
     startExam() {
         let availableQuestions = [];
-        Object.values(questions).forEach(chapter => {
+        const currentQuestions = this.getCurrentQuestions();
+        Object.values(currentQuestions).forEach(chapter => {
             availableQuestions.push(...chapter.questions);
         });
 
@@ -2381,7 +2703,8 @@ class QuizApp {
         }
 
         // 随机刷题和考试模式：遍历查找
-        for (const [key, chapter] of Object.entries(questions)) {
+        const currentQuestions = this.getCurrentQuestions();
+        for (const [key, chapter] of Object.entries(currentQuestions)) {
             if (chapter.questions.some(q => q.question === question.question)) {
                 return key;
             }
