@@ -1,12 +1,261 @@
 // 版本信息
-const APP_VERSION = 'v1.4.0';
+const APP_VERSION = 'v1.5.0';
 const VERSION_NOTES = {
     'v1.0.0': '初始版本 - 基础刷题功能',
     'v1.1.0': '即时反馈 - 选择答案后立即显示对错',
     'v1.2.0': '错题持久化 - 错题自动保存到本地存储',
     'v1.3.0': '随机刷题 - 标签页切换、随机刷题、模拟考试',
-    'v1.4.0': '学习统计 - 答题概况、章节分析、学习趋势、数据导出'
+    'v1.4.0': '学习统计 - 答题概况、章节分析、学习趋势、数据导出',
+    'v1.5.0': '登录系统 - 用户注册登录、云端数据同步'
 };
+
+// Supabase配置
+const SUPABASE_URL = 'https://lulhihbwzutrhulisryb.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_vJ-YbjSozEnzwZKuS1TCqg_5zuqqfG2';
+
+// 认证管理器
+class AuthManager {
+    constructor() {
+        this.supabase = null;
+        this.user = null;
+        this.init();
+    }
+
+    init() {
+        try {
+            this.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            this.checkSession();
+        } catch (e) {
+            console.error('Supabase初始化失败:', e);
+        }
+    }
+
+    // 检查登录状态
+    async checkSession() {
+        if (!this.supabase) return;
+
+        const { data: { session } } = await this.supabase.auth.getSession();
+        if (session) {
+            this.user = session.user;
+            this.showUserInfo();
+        }
+    }
+
+    // 注册
+    async register(email, password) {
+        if (!this.supabase) return { error: 'Supabase未初始化' };
+
+        const { data, error } = await this.supabase.auth.signUp({
+            email: email,
+            password: password
+        });
+
+        if (error) return { error: error.message };
+
+        this.user = data.user;
+        this.showUserInfo();
+        return { success: true };
+    }
+
+    // 登录
+    async login(email, password) {
+        if (!this.supabase) return { error: 'Supabase未初始化' };
+
+        const { data, error } = await this.supabase.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+
+        if (error) return { error: error.message };
+
+        this.user = data.user;
+        this.showUserInfo();
+        return { success: true };
+    }
+
+    // 退出
+    async logout() {
+        if (!this.supabase) return;
+
+        await this.supabase.auth.signOut();
+        this.user = null;
+        this.hideUserInfo();
+    }
+
+    // 显示用户信息
+    showUserInfo() {
+        const userInfo = document.getElementById('user-info');
+        const userEmail = document.getElementById('user-email');
+        if (userInfo && userEmail && this.user) {
+            userEmail.textContent = this.user.email;
+            userInfo.style.display = 'flex';
+        }
+    }
+
+    // 隐藏用户信息
+    hideUserInfo() {
+        const userInfo = document.getElementById('user-info');
+        if (userInfo) {
+            userInfo.style.display = 'none';
+        }
+    }
+
+    // 获取当前用户
+    getUser() {
+        return this.user;
+    }
+
+    // 是否已登录
+    isLoggedIn() {
+        return this.user !== null;
+    }
+}
+
+// 云端同步管理器
+class CloudSync {
+    constructor(authManager) {
+        this.authManager = authManager;
+        this.supabase = authManager.supabase;
+    }
+
+    // 同步统计数据到云端
+    async syncStats(stats) {
+        if (!this.authManager.isLoggedIn()) return;
+
+        const user = this.authManager.getUser();
+        const { error } = await this.supabase
+            .from('user_stats')
+            .upsert({
+                user_id: user.id,
+                total_answered: stats.totalAnswered,
+                total_correct: stats.totalCorrect,
+                total_study_time: stats.totalStudyTime,
+                today_study_time: stats.todayStudyTime,
+                last_study_date: stats.lastStudyDate,
+                chapter_stats: stats.chapterStats,
+                daily_stats: stats.dailyStats,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'user_id' });
+
+        if (error) {
+            console.error('同步统计数据失败:', error);
+        }
+    }
+
+    // 从云端获取统计数据
+    async fetchStats() {
+        if (!this.authManager.isLoggedIn()) return null;
+
+        const user = this.authManager.getUser();
+        const { data, error } = await this.supabase
+            .from('user_stats')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+
+        if (error || !data) return null;
+
+        return {
+            totalAnswered: data.total_answered || 0,
+            totalCorrect: data.total_correct || 0,
+            totalStudyTime: data.total_study_time || 0,
+            todayStudyTime: data.today_study_time || 0,
+            lastStudyDate: data.last_study_date || new Date().toISOString().split('T')[0],
+            chapterStats: data.chapter_stats || {},
+            dailyStats: data.daily_stats || {}
+        };
+    }
+
+    // 同步错题到云端
+    async syncWrongQuestions(wrongQuestions) {
+        if (!this.authManager.isLoggedIn()) return;
+
+        const user = this.authManager.getUser();
+
+        // 先删除用户的旧错题
+        await this.supabase
+            .from('user_wrong_questions')
+            .delete()
+            .eq('user_id', user.id);
+
+        // 插入新错题
+        if (wrongQuestions.length > 0) {
+            const records = wrongQuestions.map(q => ({
+                user_id: user.id,
+                question_text: q.question,
+                question_data: q
+            }));
+
+            const { error } = await this.supabase
+                .from('user_wrong_questions')
+                .insert(records);
+
+            if (error) {
+                console.error('同步错题失败:', error);
+            }
+        }
+    }
+
+    // 从云端获取错题
+    async fetchWrongQuestions() {
+        if (!this.authManager.isLoggedIn()) return null;
+
+        const user = this.authManager.getUser();
+        const { data, error } = await this.supabase
+            .from('user_wrong_questions')
+            .select('question_data')
+            .eq('user_id', user.id);
+
+        if (error) return null;
+
+        return data.map(item => item.question_data);
+    }
+
+    // 合并本地和云端数据
+    async mergeData(localStats, localWrongQuestions) {
+        const cloudStats = await this.fetchStats();
+        const cloudWrongQuestions = await this.fetchWrongQuestions();
+
+        // 合并统计数据（取较新的）
+        let mergedStats = { ...localStats };
+        if (cloudStats) {
+            // 取答题数较多的
+            if (cloudStats.totalAnswered > localStats.totalAnswered) {
+                mergedStats = cloudStats;
+            }
+            // 合并每日统计
+            mergedStats.dailyStats = { ...cloudStats.dailyStats, ...localStats.dailyStats };
+            // 合并章节统计
+            Object.keys(localStats.chapterStats).forEach(key => {
+                if (cloudStats.chapterStats[key]) {
+                    mergedStats.chapterStats[key] = {
+                        answered: Math.max(
+                            localStats.chapterStats[key].answered,
+                            cloudStats.chapterStats[key].answered
+                        ),
+                        correct: Math.max(
+                            localStats.chapterStats[key].correct,
+                            cloudStats.chapterStats[key].correct
+                        )
+                    };
+                }
+            });
+        }
+
+        // 合并错题（去重）
+        let mergedWrongQuestions = [...localWrongQuestions];
+        if (cloudWrongQuestions) {
+            const existingQuestions = new Set(localWrongQuestions.map(q => q.question));
+            cloudWrongQuestions.forEach(q => {
+                if (!existingQuestions.has(q.question)) {
+                    mergedWrongQuestions.push(q);
+                }
+            });
+        }
+
+        return { mergedStats, mergedWrongQuestions };
+    }
+}
 
 // 统计数据管理器
 class StatsManager {
@@ -181,6 +430,12 @@ class QuizApp {
         // 统计管理器
         this.statsManager = new StatsManager();
 
+        // 认证管理器
+        this.authManager = new AuthManager();
+
+        // 云端同步管理器
+        this.cloudSync = new CloudSync(this.authManager);
+
         // 图表实例
         this.chapterChart = null;
         this.trendChart = null;
@@ -191,8 +446,42 @@ class QuizApp {
     init() {
         this.loadWrongQuestions();
         this.bindEvents();
-        this.showHome();
         this.showVersion();
+
+        // 检查登录状态
+        setTimeout(() => {
+            if (this.authManager.isLoggedIn()) {
+                this.showHome();
+                this.syncOnLogin();
+            } else {
+                this.showLoginPage();
+            }
+        }, 100);
+    }
+
+    // 显示登录页面
+    showLoginPage() {
+        document.getElementById('login-page').style.display = 'block';
+        document.getElementById('home-page').style.display = 'none';
+    }
+
+    // 登录后同步数据
+    async syncOnLogin() {
+        const result = await this.cloudSync.mergeData(
+            this.statsManager.getStats(),
+            this.wrongQuestions
+        );
+
+        // 更新本地数据
+        this.statsManager.stats = result.mergedStats;
+        this.statsManager.saveStats();
+
+        this.wrongQuestions = result.mergedWrongQuestions;
+        this.saveWrongQuestions();
+
+        // 同步到云端
+        await this.cloudSync.syncStats(this.statsManager.getStats());
+        await this.cloudSync.syncWrongQuestions(this.wrongQuestions);
     }
 
     // 从localStorage加载错题
@@ -230,6 +519,67 @@ class QuizApp {
     }
 
     bindEvents() {
+        // 登录相关
+        document.querySelectorAll('.login-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                document.getElementById('login-form').style.display =
+                    e.target.dataset.tab === 'login' ? 'block' : 'none';
+                document.getElementById('register-form').style.display =
+                    e.target.dataset.tab === 'register' ? 'block' : 'none';
+            });
+        });
+
+        document.getElementById('login-btn').addEventListener('click', async () => {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            if (!email || !password) {
+                this.showAuthMessage('请填写邮箱和密码', 'error');
+                return;
+            }
+            const result = await this.authManager.login(email, password);
+            if (result.error) {
+                this.showAuthMessage(result.error, 'error');
+            } else {
+                this.showAuthMessage('登录成功！', 'success');
+                setTimeout(() => {
+                    document.getElementById('login-page').style.display = 'none';
+                    this.showHome();
+                    this.syncOnLogin();
+                }, 500);
+            }
+        });
+
+        document.getElementById('register-btn').addEventListener('click', async () => {
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            if (!email || !password) {
+                this.showAuthMessage('请填写邮箱和密码', 'error');
+                return;
+            }
+            if (password.length < 6) {
+                this.showAuthMessage('密码至少需要6位', 'error');
+                return;
+            }
+            const result = await this.authManager.register(email, password);
+            if (result.error) {
+                this.showAuthMessage(result.error, 'error');
+            } else {
+                this.showAuthMessage('注册成功！请查收验证邮件', 'success');
+            }
+        });
+
+        document.getElementById('skip-login-btn').addEventListener('click', () => {
+            document.getElementById('login-page').style.display = 'none';
+            this.showHome();
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            await this.authManager.logout();
+            this.showLoginPage();
+        });
+
         // 标签页切换
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', (e) => {
@@ -668,6 +1018,13 @@ class QuizApp {
             }
         });
         document.getElementById('selected-count').textContent = `已选：${count}题`;
+    }
+
+    // 显示认证消息
+    showAuthMessage(message, type) {
+        const el = document.getElementById('auth-message');
+        el.textContent = message;
+        el.className = 'auth-message ' + type;
     }
 
     showHome() {
@@ -1339,6 +1696,12 @@ class QuizApp {
                 this.saveWrongQuestions();
             }
         }
+
+        // 云端同步
+        if (this.authManager.isLoggedIn()) {
+            this.cloudSync.syncStats(this.statsManager.getStats());
+            this.cloudSync.syncWrongQuestions(this.wrongQuestions);
+        }
     }
 
     // 查找题目所属章节
@@ -1550,6 +1913,12 @@ class QuizApp {
                 this.wrongQuestions.push({...question, userAnswer});
             }
         });
+
+        // 云端同步
+        if (this.authManager.isLoggedIn()) {
+            this.cloudSync.syncStats(this.statsManager.getStats());
+            this.cloudSync.syncWrongQuestions(this.wrongQuestions);
+        }
 
         this.showResult();
     }

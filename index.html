@@ -6,13 +6,61 @@
     <title>Java期末考试刷题系统</title>
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Java期末考试刷题系统</h1>
-            <p>系统整理的复习题库，助你轻松备考</p>
+            <div class="header-content">
+                <div>
+                    <h1>Java期末考试刷题系统</h1>
+                    <p>系统整理的复习题库，助你轻松备考</p>
+                </div>
+                <div id="user-info" class="user-info" style="display: none;">
+                    <span id="user-email"></span>
+                    <button id="logout-btn" class="btn btn-small">退出</button>
+                </div>
+            </div>
         </header>
+
+        <!-- 登录页面 -->
+        <div id="login-page" class="page" style="display: none;">
+            <div class="login-card">
+                <h2>登录 / 注册</h2>
+                <div class="login-tabs">
+                    <button class="login-tab active" data-tab="login">登录</button>
+                    <button class="login-tab" data-tab="register">注册</button>
+                </div>
+
+                <div id="login-form" class="login-form">
+                    <div class="form-group">
+                        <label>邮箱</label>
+                        <input type="email" id="login-email" placeholder="请输入邮箱">
+                    </div>
+                    <div class="form-group">
+                        <label>密码</label>
+                        <input type="password" id="login-password" placeholder="请输入密码">
+                    </div>
+                    <button id="login-btn" class="btn btn-primary btn-full">登录</button>
+                </div>
+
+                <div id="register-form" class="login-form" style="display: none;">
+                    <div class="form-group">
+                        <label>邮箱</label>
+                        <input type="email" id="register-email" placeholder="请输入邮箱">
+                    </div>
+                    <div class="form-group">
+                        <label>密码</label>
+                        <input type="password" id="register-password" placeholder="请输入密码（至少6位）">
+                    </div>
+                    <button id="register-btn" class="btn btn-primary btn-full">注册</button>
+                </div>
+
+                <div id="auth-message" class="auth-message"></div>
+
+                <button id="skip-login-btn" class="btn btn-link">跳过登录，使用本地模式</button>
+            </div>
+        </div>
 
         <!-- 首页 -->
         <div id="home-page" class="page">
