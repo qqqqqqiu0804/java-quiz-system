@@ -69,6 +69,7 @@
                 <button class="tab active" data-tab="chapter">章节练习</button>
                 <button class="tab" data-tab="random">随机刷题</button>
                 <button class="tab" data-tab="exam">模拟考试</button>
+                <button class="tab" data-tab="review">错题复习 <span id="review-badge" class="badge" style="display: none;">0</span></button>
                 <button class="tab" data-tab="stats">学习统计</button>
                 <button class="tab" data-tab="history">答题历史</button>
                 <button class="tab" data-tab="achievements">成就系统</button>
@@ -313,6 +314,44 @@
                     <div id="history-list">
                         <p style="text-align: center; color: #888;">暂无答题记录</p>
                     </div>
+                </div>
+            </div>
+
+            <!-- 错题复习标签页 -->
+            <div id="tab-review" class="tab-content">
+                <div class="card">
+                    <h2>📚 错题复习计划</h2>
+                    <div class="review-summary">
+                        <div class="review-stat">
+                            <div class="review-stat-value" id="review-today-count">0</div>
+                            <div class="review-stat-label">今日待复习</div>
+                        </div>
+                        <div class="review-stat">
+                            <div class="review-stat-value" id="review-total-count">0</div>
+                            <div class="review-stat-label">总错题数</div>
+                        </div>
+                        <div class="review-stat">
+                            <div class="review-stat-value" id="review-mastery">0%</div>
+                            <div class="review-stat-label">掌握度</div>
+                        </div>
+                    </div>
+                    <div class="review-desc">
+                        <p>基于艾宾浩斯遗忘曲线的间隔重复算法：</p>
+                        <ul>
+                            <li>答对：复习间隔翻倍（1→2→4→8→16→32天）</li>
+                            <li>答错：复习间隔重置为1天</li>
+                            <li>连续答对5次：视为已掌握</li>
+                        </ul>
+                    </div>
+                    <div class="btn-group">
+                        <button id="start-review-btn" class="btn btn-primary">开始今日复习</button>
+                        <button id="clear-review-btn" class="btn btn-danger">清除复习计划</button>
+                    </div>
+                </div>
+
+                <div class="card" id="review-detail-card" style="display: none;">
+                    <h3>复习详情</h3>
+                    <div id="review-detail-list"></div>
                 </div>
             </div>
 

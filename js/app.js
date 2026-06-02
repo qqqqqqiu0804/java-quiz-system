@@ -1,5 +1,5 @@
 // 版本信息
-const APP_VERSION = 'v1.10.2';
+const APP_VERSION = 'v1.11.0';
 const VERSION_NOTES = {
     'v1.0.0': '初始版本 - 基础刷题功能',
     'v1.1.0': '即时反馈 - 选择答案后立即显示对错',
@@ -13,7 +13,8 @@ const VERSION_NOTES = {
     'v1.9.0': '题库管理 - 自定义题库、题库导入导出',
     'v1.10.0': '键盘快捷键 - 上下键切换题目、数字/字母键选择选项',
     'v1.10.1': '填空题快捷键 - Tab聚焦输入框、回车确认答案',
-    'v1.10.2': '判断题快捷键 - T/Y选择正确、F/N选择错误、随机算法优化'
+    'v1.10.2': '判断题快捷键 - T/Y选择正确、F/N选择错误、随机算法优化',
+    'v1.11.0': '错题复习计划 - 间隔重复算法、自动安排复习'
 };
 
 // Supabase配置
@@ -538,6 +539,150 @@ class HistoryManager {
     }
 }
 
+// 间隔重复复习调度器
+class ReviewScheduler {
+    constructor() {
+        this.reviewItems = this.loadReviewItems();
+        // 复习间隔（天）：1, 2, 4, 8, 16, 32, 64...
+        this.intervals = [1, 2, 4, 8, 16, 32, 64];
+    }
+
+    // 加载复习项目
+    loadReviewItems() {
+        const saved = localStorage.getItem('java-quiz-review-items');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                return {};
+            }
+        }
+        return {};
+    }
+
+    // 保存复习项目
+    saveReviewItems() {
+        localStorage.setItem('java-quiz-review-items', JSON.stringify(this.reviewItems));
+    }
+
+    // 添加错题到复习计划
+    addReviewItem(question, chapterKey) {
+        const key = this.getQuestionKey(question);
+
+        if (!this.reviewItems[key]) {
+            this.reviewItems[key] = {
+                question: question,
+                chapterKey: chapterKey,
+                level: 0,  // 复习等级（0=新题）
+                nextReview: this.getNextReviewDate(0),  // 下次复习时间
+                addedAt: new Date().toISOString(),
+                lastReviewed: null,
+                reviewCount: 0,
+                correctCount: 0
+            };
+            this.saveReviewItems();
+        }
+    }
+
+    // 获取题目唯一标识
+    getQuestionKey(question) {
+        return question.question.substring(0, 50);
+    }
+
+    // 计算下次复习日期
+    getNextReviewDate(level) {
+        const days = this.intervals[Math.min(level, this.intervals.length - 1)];
+        const date = new Date();
+        date.setDate(date.getDate() + days);
+        return date.toISOString();
+    }
+
+    // 记录复习结果
+    recordReview(question, isCorrect) {
+        const key = this.getQuestionKey(question);
+        const item = this.reviewItems[key];
+
+        if (!item) return;
+
+        item.lastReviewed = new Date().toISOString();
+        item.reviewCount++;
+
+        if (isCorrect) {
+            // 答对：提升等级，延长复习间隔
+            item.level = Math.min(item.level + 1, this.intervals.length - 1);
+            item.correctCount++;
+        } else {
+            // 答错：重置等级，缩短复习间隔
+            item.level = 0;
+        }
+
+        item.nextReview = this.getNextReviewDate(item.level);
+        this.saveReviewItems();
+    }
+
+    // 获取今日需要复习的题目
+    getTodayReviewItems() {
+        const now = new Date();
+        const todayItems = [];
+
+        Object.values(this.reviewItems).forEach(item => {
+            const nextReview = new Date(item.nextReview);
+            if (nextReview <= now) {
+                todayItems.push(item);
+            }
+        });
+
+        // 按复习等级排序（低等级优先）
+        todayItems.sort((a, b) => a.level - b.level);
+
+        return todayItems;
+    }
+
+    // 获取今日复习数量
+    getTodayReviewCount() {
+        return this.getTodayReviewItems().length;
+    }
+
+    // 获取总复习项目数量
+    getTotalCount() {
+        return Object.keys(this.reviewItems).length;
+    }
+
+    // 获取复习统计
+    getReviewStats() {
+        const items = Object.values(this.reviewItems);
+        const total = items.length;
+        const mastered = items.filter(i => i.level >= 5).length;  // 等级>=5算掌握
+        const reviewing = items.filter(i => i.level > 0 && i.level < 5).length;
+        const newItems = items.filter(i => i.level === 0).length;
+
+        return { total, mastered, reviewing, newItems };
+    }
+
+    // 删除复习项目
+    removeReviewItem(question) {
+        const key = this.getQuestionKey(question);
+        delete this.reviewItems[key];
+        this.saveReviewItems();
+    }
+
+    // 清除所有复习项目
+    clearAll() {
+        this.reviewItems = {};
+        this.saveReviewItems();
+    }
+
+    // 获取掌握度百分比
+    getMasteryPercentage() {
+        const items = Object.values(this.reviewItems);
+        if (items.length === 0) return 0;
+
+        const totalLevels = items.reduce((sum, item) => sum + item.level, 0);
+        const maxLevels = items.length * (this.intervals.length - 1);
+        return Math.round((totalLevels / maxLevels) * 100);
+    }
+}
+
 // 成就管理器
 class AchievementManager {
     constructor() {
@@ -859,6 +1004,9 @@ class QuizApp {
 
         // 历史记录管理器
         this.historyManager = new HistoryManager();
+
+        // 复习调度器
+        this.reviewScheduler = new ReviewScheduler();
 
         // 成就管理器
         this.achievementManager = new AchievementManager();
@@ -1299,6 +1447,20 @@ class QuizApp {
             }
         });
 
+        // 复习计划相关
+        document.getElementById('start-review-btn').addEventListener('click', () => {
+            this.startReview();
+        });
+
+        document.getElementById('clear-review-btn').addEventListener('click', () => {
+            if (confirm('确定要清除所有复习计划吗？')) {
+                this.reviewScheduler.clearAll();
+                this.renderReviewPlan();
+                this.updateReviewBadge();
+                alert('复习计划已清除！');
+            }
+        });
+
         // 键盘快捷键
         document.addEventListener('keydown', (e) => {
             this.handleKeyboard(e);
@@ -1488,6 +1650,11 @@ class QuizApp {
         // 切换到成就标签页时渲染成就列表
         if (tabName === 'achievements') {
             this.renderAchievements();
+        }
+
+        // 切换到复习标签页时渲染复习计划
+        if (tabName === 'review') {
+            this.renderReviewPlan();
         }
     }
 
@@ -1973,6 +2140,86 @@ class QuizApp {
         container.innerHTML = html;
     }
 
+    // 渲染复习计划
+    renderReviewPlan() {
+        const todayCount = this.reviewScheduler.getTodayReviewCount();
+        const totalCount = this.reviewScheduler.getTotalCount();
+        const mastery = this.reviewScheduler.getMasteryPercentage();
+
+        document.getElementById('review-today-count').textContent = todayCount;
+        document.getElementById('review-total-count').textContent = totalCount;
+        document.getElementById('review-mastery').textContent = mastery + '%';
+
+        // 渲染详情列表
+        const detailCard = document.getElementById('review-detail-card');
+        const detailList = document.getElementById('review-detail-list');
+
+        if (totalCount > 0) {
+            detailCard.style.display = 'block';
+            const items = Object.values(this.reviewScheduler.reviewItems);
+
+            let html = '';
+            items.forEach(item => {
+                const levelText = ['新题', '初学', '熟悉', '掌握', '精通', '巩固', '牢记'][item.level] || '掌握';
+                const nextReview = new Date(item.nextReview);
+                const isOverdue = nextReview <= new Date();
+
+                html += `
+                    <div class="review-detail-item">
+                        <div class="question-text">${item.question.question}</div>
+                        <span class="review-level level-${Math.min(item.level, 5)}">${levelText}</span>
+                        ${isOverdue ? '<span style="color: #f5576c; margin-left: 10px;">待复习</span>' : ''}
+                    </div>
+                `;
+            });
+
+            detailList.innerHTML = html;
+        } else {
+            detailCard.style.display = 'none';
+        }
+    }
+
+    // 开始复习
+    startReview() {
+        const todayItems = this.reviewScheduler.getTodayReviewItems();
+
+        if (todayItems.length === 0) {
+            alert('今日没有需要复习的题目！');
+            return;
+        }
+
+        // 设置复习题目
+        this.questions = todayItems.map(item => item.question);
+        this.totalQuestions = this.questions.length;
+        this.currentQuestionIndex = 0;
+        this.answers = {};
+        this.score = 0;
+        this.isReview = true;
+        this.isExamMode = false;
+        this.answeredQuestions = new Set();
+        this.isReviewMode = true;  // 标记为复习模式
+
+        document.getElementById('home-page').style.display = 'none';
+        document.getElementById('quiz-page').style.display = 'block';
+        document.getElementById('result-page').style.display = 'none';
+
+        this.renderQuestion();
+    }
+
+    // 更新复习徽章
+    updateReviewBadge() {
+        const count = this.reviewScheduler.getTodayReviewCount();
+        const badge = document.getElementById('review-badge');
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    }
+
     // 检查并显示新成就
     checkAndShowAchievements() {
         const stats = {
@@ -2105,8 +2352,10 @@ class QuizApp {
         document.getElementById('search-input').value = '';
         this.answeredQuestions = new Set();
         this.isExamMode = false;
+        this.isReviewMode = false;
         this.updateWrongCount();
         this.updateFavoriteCount();
+        this.updateReviewBadge();
         this.loadChapterOptions();
     }
 
@@ -2811,6 +3060,17 @@ class QuizApp {
                 this.wrongQuestions.push({...question, userAnswer});
                 this.saveWrongQuestions();
             }
+        }
+
+        // 复习计划逻辑
+        if (this.isReviewMode) {
+            // 复习模式下，记录复习结果
+            this.reviewScheduler.recordReview(question, isCorrect);
+        } else if (!isCorrect) {
+            // 非复习模式下，答错的题目自动加入复习计划
+            const chapterKey = this.findChapterKey(question);
+            this.reviewScheduler.addReviewItem(question, chapterKey);
+            this.updateReviewBadge();
         }
 
         // 云端同步
