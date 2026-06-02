@@ -15,35 +15,134 @@
 
         <!-- 首页 -->
         <div id="home-page" class="page">
-            <div class="card">
-                <h2>选择章节</h2>
-                <select id="chapter-select">
-                    <option value="">-- 请选择章节 --</option>
-                    <option value="chapter1-2">第1-2章 语法基础</option>
-                    <option value="chapter3">第3章 流程控制</option>
-                    <option value="chapter4">第4章 数组和字符串</option>
-                    <option value="chapter5">第5章 面向对象基础</option>
-                    <option value="chapter6">第6章 面向对象高级</option>
-                    <option value="chapter7">第7章 异常</option>
-                    <option value="chapter9">第9章 IO流</option>
-                </select>
-                <div id="chapter-info" class="chapter-info"></div>
-                <div class="btn-group">
-                    <button id="start-btn" class="btn btn-primary">开始练习</button>
-                    <button id="wrong-btn" class="btn btn-warning">错题重做 <span id="wrong-count"></span></button>
-                    <button id="clear-wrong-btn" class="btn btn-danger" style="display: none;">清除错题</button>
+            <!-- 标签页切换 -->
+            <div class="tabs">
+                <button class="tab active" data-tab="chapter">章节练习</button>
+                <button class="tab" data-tab="random">随机刷题</button>
+                <button class="tab" data-tab="exam">模拟考试</button>
+            </div>
+
+            <!-- 章节练习标签页 -->
+            <div id="tab-chapter" class="tab-content active">
+                <div class="card">
+                    <h2>选择章节</h2>
+                    <select id="chapter-select">
+                        <option value="">-- 请选择章节 --</option>
+                        <option value="chapter1-2">第1-2章 语法基础</option>
+                        <option value="chapter3">第3章 流程控制</option>
+                        <option value="chapter4">第4章 数组和字符串</option>
+                        <option value="chapter5">第5章 面向对象基础</option>
+                        <option value="chapter6">第6章 面向对象高级</option>
+                        <option value="chapter7">第7章 异常</option>
+                        <option value="chapter9">第9章 IO流</option>
+                    </select>
+                    <div id="chapter-info" class="chapter-info"></div>
+                    <div class="btn-group">
+                        <button id="start-btn" class="btn btn-primary">开始练习</button>
+                        <button id="wrong-btn" class="btn btn-warning">错题重做 <span id="wrong-count"></span></button>
+                        <button id="clear-wrong-btn" class="btn btn-danger" style="display: none;">清除错题</button>
+                    </div>
+                </div>
+
+                <div class="card tips">
+                    <h3>使用说明</h3>
+                    <ul>
+                        <li>选择章节后点击"开始练习"</li>
+                        <li>每题作答后点击"下一题"</li>
+                        <li>最后一题点击"提交答案"</li>
+                        <li>提交后可查看成绩和错题解析</li>
+                        <li>错题会自动保存，可随时重做</li>
+                    </ul>
                 </div>
             </div>
 
-            <div class="card tips">
-                <h3>使用说明</h3>
-                <ul>
-                    <li>选择章节后点击"开始练习"</li>
-                    <li>每题作答后点击"下一题"</li>
-                    <li>最后一题点击"提交答案"</li>
-                    <li>提交后可查看成绩和错题解析</li>
-                    <li>错题会自动保存，可随时重做</li>
-                </ul>
+            <!-- 随机刷题标签页 -->
+            <div id="tab-random" class="tab-content">
+                <div class="card">
+                    <h2>随机刷题</h2>
+
+                    <div class="setting-group">
+                        <label>刷题范围</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="random-mode" value="all" checked>
+                                <span>全部章节</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="random-mode" value="selected">
+                                <span>选章节随机</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="chapter-checkboxes" class="chapter-checkboxes" style="display: none;">
+                        <label><input type="checkbox" value="chapter1-2" checked> 第1-2章 语法基础 (39题)</label>
+                        <label><input type="checkbox" value="chapter3" checked> 第3章 流程控制 (23题)</label>
+                        <label><input type="checkbox" value="chapter4" checked> 第4章 数组和字符串 (17题)</label>
+                        <label><input type="checkbox" value="chapter5" checked> 第5章 面向对象基础 (27题)</label>
+                        <label><input type="checkbox" value="chapter6" checked> 第6章 面向对象高级 (14题)</label>
+                        <label><input type="checkbox" value="chapter7" checked> 第7章 异常 (22题)</label>
+                        <label><input type="checkbox" value="chapter9" checked> 第9章 IO流 (27题)</label>
+                        <div id="selected-count" class="selected-count">已选：169题</div>
+                    </div>
+
+                    <div class="setting-group">
+                        <label>抽题数量</label>
+                        <div class="count-options">
+                            <button class="count-btn active" data-count="10">10题</button>
+                            <button class="count-btn" data-count="20">20题</button>
+                            <button class="count-btn" data-count="50">50题</button>
+                            <button class="count-btn" data-count="100">100题</button>
+                            <div class="custom-count">
+                                <input type="number" id="random-custom-count" min="1" max="169" placeholder="自定义">
+                                <span>题</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button id="start-random-btn" class="btn btn-primary">开始刷题</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 模拟考试标签页 -->
+            <div id="tab-exam" class="tab-content">
+                <div class="card">
+                    <h2>模拟考试</h2>
+
+                    <div class="setting-group">
+                        <label>考试题数</label>
+                        <div class="count-options">
+                            <button class="exam-count-btn" data-count="20">20题</button>
+                            <button class="exam-count-btn" data-count="30">30题</button>
+                            <button class="exam-count-btn active" data-count="50">50题</button>
+                            <button class="exam-count-btn" data-count="100">100题</button>
+                            <div class="custom-count">
+                                <input type="number" id="exam-custom-count" min="1" max="169" placeholder="自定义">
+                                <span>题</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <label>考试时间</label>
+                        <div class="count-options">
+                            <button class="exam-time-btn" data-time="30">30分钟</button>
+                            <button class="exam-time-btn" data-time="60">60分钟</button>
+                            <button class="exam-time-btn active" data-time="90">90分钟</button>
+                            <button class="exam-time-btn" data-time="120">120分钟</button>
+                            <div class="custom-count">
+                                <input type="number" id="exam-custom-time" min="1" max="180" placeholder="自定义">
+                                <span>分钟</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button id="start-exam-btn" class="btn btn-primary">开始考试</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -60,6 +159,27 @@
                     <button id="next-btn" class="btn btn-primary">下一题</button>
                     <button id="submit-btn" class="btn btn-success" style="display: none;">提交答案</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- 考试页 -->
+        <div id="exam-page" class="page" style="display: none;">
+            <div class="quiz-header">
+                <span id="exam-progress"></span>
+                <button id="exam-submit-btn" class="btn btn-warning">交卷</button>
+            </div>
+            <div class="card">
+                <div id="exam-question-container"></div>
+                <div class="btn-group">
+                    <button id="exam-prev-btn" class="btn">上一题</button>
+                    <button id="exam-next-btn" class="btn btn-primary">下一题</button>
+                </div>
+            </div>
+            <!-- 可拖动计时器 -->
+            <div id="timer-float" class="timer-float">
+                <div class="timer-drag" id="timer-drag">⏱</div>
+                <div class="timer-display" id="timer-display">90:00</div>
+                <button class="timer-minimize" id="timer-minimize">−</button>
             </div>
         </div>
 
@@ -80,6 +200,17 @@
             <div id="wrong-section" class="card" style="display: none;">
                 <h3>错题解析</h3>
                 <div id="wrong-list"></div>
+            </div>
+        </div>
+
+        <!-- 时间到提醒弹窗 -->
+        <div id="time-up-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h3>⏰ 时间到！</h3>
+                <p>考试时间已结束，将在 <span id="countdown">30</span> 秒后自动提交</p>
+                <div class="btn-group">
+                    <button id="modal-submit-btn" class="btn btn-primary">立即提交</button>
+                </div>
             </div>
         </div>
 
