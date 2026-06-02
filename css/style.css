@@ -735,6 +735,90 @@ footer {
     font-size: 1.3rem;
 }
 
+/* 统计面板样式 */
+.stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+    border: 2px solid #667eea30;
+    border-radius: 12px;
+    padding: 20px 15px;
+    text-align: center;
+}
+
+.stat-card.correct {
+    background: linear-gradient(135deg, #11998e15 0%, #38ef7d15 100%);
+    border-color: #11998e30;
+}
+
+.stat-card.wrong {
+    background: linear-gradient(135deg, #f5576c15 0%, #f093fb15 100%);
+    border-color: #f5576c30;
+}
+
+.stat-card.rate {
+    background: linear-gradient(135deg, #f093fb15 0%, #f5576c15 100%);
+    border-color: #f093fb30;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #667eea;
+}
+
+.stat-card.correct .stat-value {
+    color: #11998e;
+}
+
+.stat-card.wrong .stat-value {
+    color: #f5576c;
+}
+
+.stat-card.rate .stat-value {
+    color: #f093fb;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #888;
+    margin-top: 5px;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin-top: 15px;
+}
+
+.weak-chapters {
+    margin-top: 15px;
+    padding: 15px;
+    background: #fff5f5;
+    border-radius: 10px;
+    border: 1px solid #ffe0e0;
+}
+
+.weak-chapters h4 {
+    color: #f5576c;
+    margin-bottom: 10px;
+}
+
+.weak-item {
+    padding: 8px 0;
+    color: #666;
+}
+
+.weak-item span {
+    color: #f5576c;
+    font-weight: bold;
+}
+
 /* 响应式设计 */
 @media (max-width: 600px) {
     body {

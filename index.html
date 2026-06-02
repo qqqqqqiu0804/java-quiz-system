@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Java期末考试刷题系统</title>
     <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
@@ -20,6 +21,7 @@
                 <button class="tab active" data-tab="chapter">章节练习</button>
                 <button class="tab" data-tab="random">随机刷题</button>
                 <button class="tab" data-tab="exam">模拟考试</button>
+                <button class="tab" data-tab="stats">学习统计</button>
             </div>
 
             <!-- 章节练习标签页 -->
@@ -142,6 +144,75 @@
                     <div class="btn-group">
                         <button id="start-exam-btn" class="btn btn-primary">开始考试</button>
                     </div>
+                </div>
+            </div>
+
+            <!-- 学习统计标签页 -->
+            <div id="tab-stats" class="tab-content">
+                <!-- 答题概况 -->
+                <div class="card">
+                    <h2>答题概况</h2>
+                    <div class="stats-cards">
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-total">0</div>
+                            <div class="stat-label">总答题数</div>
+                        </div>
+                        <div class="stat-card correct">
+                            <div class="stat-value" id="stat-correct">0</div>
+                            <div class="stat-label">正确数</div>
+                        </div>
+                        <div class="stat-card wrong">
+                            <div class="stat-value" id="stat-wrong">0</div>
+                            <div class="stat-label">错误数</div>
+                        </div>
+                        <div class="stat-card rate">
+                            <div class="stat-value" id="stat-rate">0%</div>
+                            <div class="stat-label">正确率</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 学习时长 -->
+                <div class="card">
+                    <h2>学习时长</h2>
+                    <div class="stats-cards">
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-total-time">0分钟</div>
+                            <div class="stat-label">累计学习</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-today-time">0分钟</div>
+                            <div class="stat-label">今日学习</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 章节分析 -->
+                <div class="card">
+                    <h2>章节分析</h2>
+                    <div class="chart-container">
+                        <canvas id="chapter-chart"></canvas>
+                    </div>
+                    <div id="weak-chapters" class="weak-chapters"></div>
+                </div>
+
+                <!-- 学习趋势 -->
+                <div class="card">
+                    <h2>学习趋势（近7天）</h2>
+                    <div class="chart-container">
+                        <canvas id="trend-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 数据管理 -->
+                <div class="card">
+                    <h2>数据管理</h2>
+                    <div class="btn-group">
+                        <button id="export-stats-btn" class="btn btn-primary">导出数据</button>
+                        <button id="import-stats-btn" class="btn btn-success">导入数据</button>
+                        <button id="clear-stats-btn" class="btn btn-danger">清除数据</button>
+                    </div>
+                    <input type="file" id="import-file" accept=".json" style="display: none;">
                 </div>
             </div>
         </div>

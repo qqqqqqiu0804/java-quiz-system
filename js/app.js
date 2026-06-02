@@ -1,11 +1,159 @@
 // 版本信息
-const APP_VERSION = 'v1.3.0';
+const APP_VERSION = 'v1.4.0';
 const VERSION_NOTES = {
     'v1.0.0': '初始版本 - 基础刷题功能',
     'v1.1.0': '即时反馈 - 选择答案后立即显示对错',
     'v1.2.0': '错题持久化 - 错题自动保存到本地存储',
-    'v1.3.0': '随机刷题 - 标签页切换、随机刷题、模拟考试'
+    'v1.3.0': '随机刷题 - 标签页切换、随机刷题、模拟考试',
+    'v1.4.0': '学习统计 - 答题概况、章节分析、学习趋势、数据导出'
 };
+
+// 统计数据管理器
+class StatsManager {
+    constructor() {
+        this.stats = this.loadStats();
+        this.studyTimer = null;
+        this.studyStartTime = null;
+    }
+
+    // 加载统计数据
+    loadStats() {
+        const saved = localStorage.getItem('java-quiz-stats');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                return this.getDefaultStats();
+            }
+        }
+        return this.getDefaultStats();
+    }
+
+    // 获取默认统计数据
+    getDefaultStats() {
+        return {
+            totalAnswered: 0,
+            totalCorrect: 0,
+            totalStudyTime: 0,
+            todayStudyTime: 0,
+            lastStudyDate: new Date().toISOString().split('T')[0],
+            chapterStats: {
+                'chapter1-2': { answered: 0, correct: 0 },
+                'chapter3': { answered: 0, correct: 0 },
+                'chapter4': { answered: 0, correct: 0 },
+                'chapter5': { answered: 0, correct: 0 },
+                'chapter6': { answered: 0, correct: 0 },
+                'chapter7': { answered: 0, correct: 0 },
+                'chapter9': { answered: 0, correct: 0 }
+            },
+            dailyStats: {}
+        };
+    }
+
+    // 保存统计数据
+    saveStats() {
+        localStorage.setItem('java-quiz-stats', JSON.stringify(this.stats));
+    }
+
+    // 记录答题结果
+    recordAnswer(chapterKey, isCorrect) {
+        // 检查是否是新的一天
+        const today = new Date().toISOString().split('T')[0];
+        if (this.stats.lastStudyDate !== today) {
+            this.stats.todayStudyTime = 0;
+            this.stats.lastStudyDate = today;
+        }
+
+        // 更新总统计
+        this.stats.totalAnswered++;
+        if (isCorrect) {
+            this.stats.totalCorrect++;
+        }
+
+        // 更新章节统计
+        if (this.stats.chapterStats[chapterKey]) {
+            this.stats.chapterStats[chapterKey].answered++;
+            if (isCorrect) {
+                this.stats.chapterStats[chapterKey].correct++;
+            }
+        }
+
+        // 更新每日统计
+        if (!this.stats.dailyStats[today]) {
+            this.stats.dailyStats[today] = { total: 0, correct: 0 };
+        }
+        this.stats.dailyStats[today].total++;
+        if (isCorrect) {
+            this.stats.dailyStats[today].correct++;
+        }
+
+        // 只保留最近30天的数据
+        const dates = Object.keys(this.stats.dailyStats).sort();
+        while (dates.length > 30) {
+            delete this.stats.dailyStats[dates.shift()];
+        }
+
+        this.saveStats();
+    }
+
+    // 开始学习计时
+    startStudyTimer() {
+        this.studyStartTime = Date.now();
+    }
+
+    // 停止学习计时
+    stopStudyTimer() {
+        if (this.studyStartTime) {
+            const elapsed = Math.floor((Date.now() - this.studyStartTime) / 1000);
+            this.stats.totalStudyTime += elapsed;
+            this.stats.todayStudyTime += elapsed;
+            this.studyStartTime = null;
+            this.saveStats();
+        }
+    }
+
+    // 获取统计数据
+    getStats() {
+        return { ...this.stats };
+    }
+
+    // 导出数据
+    exportData() {
+        const data = {
+            version: APP_VERSION,
+            exportDate: new Date().toISOString(),
+            stats: this.stats
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `java-quiz-stats-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // 导入数据
+    importData(jsonString) {
+        try {
+            const data = JSON.parse(jsonString);
+            if (data.stats) {
+                this.stats = { ...this.getDefaultStats(), ...data.stats };
+                this.saveStats();
+                return true;
+            }
+            return false;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    // 清除数据
+    clearStats() {
+        this.stats = this.getDefaultStats();
+        this.saveStats();
+    }
+}
 
 // 刷题系统主程序
 class QuizApp {
@@ -29,6 +177,13 @@ class QuizApp {
         // 计时器拖动相关
         this.isDragging = false;
         this.dragOffset = { x: 0, y: 0 };
+
+        // 统计管理器
+        this.statsManager = new StatsManager();
+
+        // 图表实例
+        this.chapterChart = null;
+        this.trendChart = null;
 
         this.init();
     }
@@ -192,6 +347,40 @@ class QuizApp {
         document.getElementById('modal-submit-btn').addEventListener('click', () => {
             this.submitExam();
         });
+
+        // 统计面板相关
+        document.getElementById('export-stats-btn').addEventListener('click', () => {
+            this.statsManager.exportData();
+            alert('数据导出成功！');
+        });
+
+        document.getElementById('import-stats-btn').addEventListener('click', () => {
+            document.getElementById('import-file').click();
+        });
+
+        document.getElementById('import-file').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    if (this.statsManager.importData(event.target.result)) {
+                        alert('数据导入成功！');
+                        this.renderStats();
+                    } else {
+                        alert('数据导入失败，请检查文件格式！');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        document.getElementById('clear-stats-btn').addEventListener('click', () => {
+            if (confirm('确定要清除所有统计数据吗？此操作不可恢复！')) {
+                this.statsManager.clearStats();
+                this.renderStats();
+                alert('数据已清除！');
+            }
+        });
     }
 
     // 初始化计时器拖动
@@ -254,6 +443,218 @@ class QuizApp {
 
         document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add('active');
         document.getElementById(`tab-${tabName}`).classList.add('active');
+
+        // 切换到统计标签页时渲染统计面板
+        if (tabName === 'stats') {
+            this.renderStats();
+        }
+    }
+
+    // 渲染统计面板
+    renderStats() {
+        const stats = this.statsManager.getStats();
+
+        // 更新答题概况
+        document.getElementById('stat-total').textContent = stats.totalAnswered;
+        document.getElementById('stat-correct').textContent = stats.totalCorrect;
+        document.getElementById('stat-wrong').textContent = stats.totalAnswered - stats.totalCorrect;
+        document.getElementById('stat-rate').textContent =
+            stats.totalAnswered > 0 ? Math.round((stats.totalCorrect / stats.totalAnswered) * 100) + '%' : '0%';
+
+        // 更新学习时长
+        document.getElementById('stat-total-time').textContent = this.formatTime(stats.totalStudyTime);
+        document.getElementById('stat-today-time').textContent = this.formatTime(stats.todayStudyTime);
+
+        // 渲染章节分析图表
+        this.renderChapterChart(stats);
+
+        // 渲染学习趋势图表
+        this.renderTrendChart(stats);
+
+        // 显示薄弱知识点
+        this.showWeakChapters(stats);
+    }
+
+    // 格式化时间
+    formatTime(seconds) {
+        if (seconds < 60) return seconds + '秒';
+        if (seconds < 3600) return Math.floor(seconds / 60) + '分钟';
+        const hours = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        return hours + '小时' + (mins > 0 ? mins + '分钟' : '');
+    }
+
+    // 渲染章节分析图表
+    renderChapterChart(stats) {
+        const ctx = document.getElementById('chapter-chart');
+        if (!ctx) return;
+
+        const chapterNames = {
+            'chapter1-2': '第1-2章',
+            'chapter3': '第3章',
+            'chapter4': '第4章',
+            'chapter5': '第5章',
+            'chapter6': '第6章',
+            'chapter7': '第7章',
+            'chapter9': '第9章'
+        };
+
+        const labels = [];
+        const data = [];
+        const colors = [];
+
+        Object.entries(stats.chapterStats).forEach(([key, val]) => {
+            labels.push(chapterNames[key] || key);
+            const rate = val.answered > 0 ? Math.round((val.correct / val.answered) * 100) : 0;
+            data.push(rate);
+            colors.push(rate < 60 ? '#f5576c' : rate < 80 ? '#f093fb' : '#11998e');
+        });
+
+        if (this.chapterChart) {
+            this.chapterChart.destroy();
+        }
+
+        this.chapterChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '正确率 (%)',
+                    data: data,
+                    backgroundColor: colors,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 渲染学习趋势图表
+    renderTrendChart(stats) {
+        const ctx = document.getElementById('trend-chart');
+        if (!ctx) return;
+
+        // 获取最近7天的日期
+        const dates = [];
+        const totalData = [];
+        const correctData = [];
+
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateStr = date.toISOString().split('T')[0];
+            const monthDay = (date.getMonth() + 1) + '/' + date.getDate();
+            dates.push(monthDay);
+
+            const dayStats = stats.dailyStats[dateStr] || { total: 0, correct: 0 };
+            totalData.push(dayStats.total);
+            correctData.push(dayStats.correct);
+        }
+
+        if (this.trendChart) {
+            this.trendChart.destroy();
+        }
+
+        this.trendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [
+                    {
+                        label: '答题数',
+                        data: totalData,
+                        borderColor: '#667eea',
+                        backgroundColor: '#667eea30',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: '正确数',
+                        data: correctData,
+                        borderColor: '#11998e',
+                        backgroundColor: '#11998e30',
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 显示薄弱知识点
+    showWeakChapters(stats) {
+        const weakChapters = document.getElementById('weak-chapters');
+        if (!weakChapters) return;
+
+        const chapterNames = {
+            'chapter1-2': '第1-2章 语法基础',
+            'chapter3': '第3章 流程控制',
+            'chapter4': '第4章 数组和字符串',
+            'chapter5': '第5章 面向对象基础',
+            'chapter6': '第6章 面向对象高级',
+            'chapter7': '第7章 异常',
+            'chapter9': '第9章 IO流'
+        };
+
+        const weakItems = [];
+        Object.entries(stats.chapterStats).forEach(([key, val]) => {
+            if (val.answered > 0) {
+                const rate = Math.round((val.correct / val.answered) * 100);
+                if (rate < 60) {
+                    weakItems.push({
+                        name: chapterNames[key] || key,
+                        rate: rate
+                    });
+                }
+            }
+        });
+
+        if (weakItems.length > 0) {
+            weakChapters.style.display = 'block';
+            let html = '<h4>⚠ 薄弱知识点（正确率低于60%）</h4>';
+            weakItems.forEach(item => {
+                html += `<div class="weak-item">${item.name}: <span>${item.rate}%</span></div>`;
+            });
+            weakChapters.innerHTML = html;
+        } else {
+            weakChapters.style.display = 'none';
+        }
     }
 
     // 更新选中章节数量
@@ -270,6 +671,9 @@ class QuizApp {
     }
 
     showHome() {
+        // 停止学习计时
+        this.statsManager.stopStudyTimer();
+
         document.getElementById('home-page').style.display = 'block';
         document.getElementById('quiz-page').style.display = 'none';
         document.getElementById('exam-page').style.display = 'none';
@@ -327,6 +731,9 @@ class QuizApp {
         this.isReview = false;
         this.isExamMode = false;
         this.answeredQuestions = new Set();
+
+        // 开始学习计时
+        this.statsManager.startStudyTimer();
 
         document.getElementById('home-page').style.display = 'none';
         document.getElementById('quiz-page').style.display = 'block';
@@ -407,6 +814,9 @@ class QuizApp {
         this.isExamMode = false;
         this.answeredQuestions = new Set();
 
+        // 开始学习计时
+        this.statsManager.startStudyTimer();
+
         document.getElementById('home-page').style.display = 'none';
         document.getElementById('quiz-page').style.display = 'block';
         document.getElementById('result-page').style.display = 'none';
@@ -465,6 +875,9 @@ class QuizApp {
         // 设置考试时间
         this.examTimeRemaining = timeLimit * 60;
         this.updateTimerDisplay();
+
+        // 开始学习计时
+        this.statsManager.startStudyTimer();
 
         document.getElementById('home-page').style.display = 'none';
         document.getElementById('quiz-page').style.display = 'none';
@@ -906,6 +1319,12 @@ class QuizApp {
                 break;
         }
 
+        // 记录统计数据
+        const chapterKey = this.findChapterKey(question);
+        if (chapterKey) {
+            this.statsManager.recordAnswer(chapterKey, isCorrect);
+        }
+
         if (isCorrect) {
             this.score++;
             const wrongIndex = this.wrongQuestions.findIndex(q => q.question === question.question);
@@ -920,6 +1339,22 @@ class QuizApp {
                 this.saveWrongQuestions();
             }
         }
+    }
+
+    // 查找题目所属章节
+    findChapterKey(question) {
+        // 章节练习模式
+        if (this.currentChapter && !this.isExamMode) {
+            return this.currentChapter;
+        }
+
+        // 随机刷题和考试模式：遍历查找
+        for (const [key, chapter] of Object.entries(questions)) {
+            if (chapter.questions.some(q => q.question === question.question)) {
+                return key;
+            }
+        }
+        return null;
     }
 
     showFeedback(question, userAnswer) {
@@ -1101,6 +1536,12 @@ class QuizApp {
                             );
                     }
                     break;
+            }
+
+            // 记录统计数据
+            const chapterKey = this.findChapterKey(question);
+            if (chapterKey) {
+                this.statsManager.recordAnswer(chapterKey, isCorrect);
             }
 
             if (isCorrect) {
