@@ -1487,29 +1487,65 @@ class QuizApp {
             }
         }
 
-        // 回车键在输入框中：确认填空题答案
-        if (e.key === 'Enter' && e.target.classList.contains('fill-input')) {
-            e.preventDefault();
-            const confirmBtn = document.getElementById('confirm-fill');
-            if (confirmBtn) {
-                confirmBtn.click();
+        // 填空题输入框中的快捷键
+        if (e.target.classList.contains('fill-input')) {
+            const fillInputs = Array.from(document.querySelectorAll('.fill-input'));
+            const currentIndex = fillInputs.indexOf(e.target);
+
+            switch (e.key) {
+                case 'ArrowUp':
+                    e.preventDefault();
+                    // 切换到上一个空
+                    if (currentIndex > 0) {
+                        fillInputs[currentIndex - 1].focus();
+                    }
+                    return;
+
+                case 'ArrowDown':
+                    e.preventDefault();
+                    // 切换到下一个空
+                    if (currentIndex < fillInputs.length - 1) {
+                        fillInputs[currentIndex + 1].focus();
+                    }
+                    return;
+
+                case 'Enter':
+                    e.preventDefault();
+                    // 如果是最后一个空，确认答案
+                    if (currentIndex === fillInputs.length - 1) {
+                        const confirmBtn = document.getElementById('confirm-fill');
+                        if (confirmBtn) confirmBtn.click();
+                    } else {
+                        // 否则切换到下一个空
+                        fillInputs[currentIndex + 1].focus();
+                    }
+                    return;
             }
-            return;
         }
 
         // 检查是否在输入框中（其他情况）
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
         switch (e.key) {
-            case 'ArrowUp':
             case 'ArrowLeft':
                 e.preventDefault();
                 if (isQuizActive) this.prevQuestion();
                 else if (isExamActive) this.prevExamQuestion();
                 break;
 
-            case 'ArrowDown':
             case 'ArrowRight':
+                e.preventDefault();
+                if (isQuizActive) this.nextQuestion();
+                else if (isExamActive) this.nextExamQuestion();
+                break;
+
+            case 'ArrowUp':
+                e.preventDefault();
+                if (isQuizActive) this.prevQuestion();
+                else if (isExamActive) this.prevExamQuestion();
+                break;
+
+            case 'ArrowDown':
                 e.preventDefault();
                 if (isQuizActive) this.nextQuestion();
                 else if (isExamActive) this.nextExamQuestion();
