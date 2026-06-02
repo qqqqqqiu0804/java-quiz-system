@@ -1313,7 +1313,27 @@ class QuizApp {
 
         if (!isQuizActive && !isExamActive) return;
 
-        // 检查是否在输入框中
+        // Tab键：聚焦到填空题输入框
+        if (e.key === 'Tab') {
+            const fillInputs = document.querySelectorAll('.fill-input');
+            if (fillInputs.length > 0) {
+                e.preventDefault();
+                fillInputs[0].focus();
+                return;
+            }
+        }
+
+        // 回车键在输入框中：确认填空题答案
+        if (e.key === 'Enter' && e.target.classList.contains('fill-input')) {
+            e.preventDefault();
+            const confirmBtn = document.getElementById('confirm-fill');
+            if (confirmBtn) {
+                confirmBtn.click();
+            }
+            return;
+        }
+
+        // 检查是否在输入框中（其他情况）
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
         switch (e.key) {
@@ -1326,6 +1346,11 @@ class QuizApp {
 
             case 'ArrowDown':
             case 'ArrowRight':
+                e.preventDefault();
+                if (isQuizActive) this.nextQuestion();
+                else if (isExamActive) this.nextExamQuestion();
+                break;
+
             case 'Enter':
                 e.preventDefault();
                 if (isQuizActive) this.nextQuestion();
