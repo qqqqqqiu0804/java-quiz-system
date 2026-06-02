@@ -16,9 +16,43 @@
                     <h1>Java期末考试刷题系统</h1>
                     <p>系统整理的复习题库，助你轻松备考</p>
                 </div>
-                <div id="user-info" class="user-info" style="display: none;">
-                    <span id="user-email"></span>
-                    <button id="logout-btn" class="btn btn-small">退出</button>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <!-- 主题切换 -->
+                    <div class="theme-switcher">
+                        <button id="theme-btn" class="theme-btn" title="切换主题">🎨</button>
+                        <div id="theme-panel" class="theme-panel">
+                            <h3>🎨 主题设置</h3>
+                            <div class="theme-options">
+                                <div class="theme-option active" data-theme="light">
+                                    <div class="theme-preview" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+                                    <span class="theme-name">亮色</span>
+                                </div>
+                                <div class="theme-option" data-theme="dark">
+                                    <div class="theme-preview" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);"></div>
+                                    <span class="theme-name">深色</span>
+                                </div>
+                                <div class="theme-option" data-theme="green">
+                                    <div class="theme-preview" style="background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);"></div>
+                                    <span class="theme-name">护眼绿</span>
+                                </div>
+                                <div class="theme-option" data-theme="blue">
+                                    <div class="theme-preview" style="background: linear-gradient(135deg, #0f0c29 0%, #302b63 100%);"></div>
+                                    <span class="theme-name">星空蓝</span>
+                                </div>
+                            </div>
+                            <div class="custom-color-section">
+                                <label>自定义主色调</label>
+                                <div class="color-picker-wrapper">
+                                    <input type="color" id="custom-color" class="color-picker" value="#667eea">
+                                    <input type="text" id="custom-color-hex" class="color-hex" value="#667eea" placeholder="#667eea">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="user-info" class="user-info" style="display: none;">
+                        <span id="user-email"></span>
+                        <button id="logout-btn" class="btn btn-small">退出</button>
+                    </div>
                 </div>
             </div>
         </header>

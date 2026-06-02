@@ -1,5 +1,5 @@
 // 版本信息
-const APP_VERSION = 'v1.11.0';
+const APP_VERSION = 'v2.0.0';
 const VERSION_NOTES = {
     'v1.0.0': '初始版本 - 基础刷题功能',
     'v1.1.0': '即时反馈 - 选择答案后立即显示对错',
@@ -14,8 +14,150 @@ const VERSION_NOTES = {
     'v1.10.0': '键盘快捷键 - 上下键切换题目、数字/字母键选择选项',
     'v1.10.1': '填空题快捷键 - Tab聚焦输入框、回车确认答案',
     'v1.10.2': '判断题快捷键 - T/Y选择正确、F/N选择错误、随机算法优化',
-    'v1.11.0': '错题复习计划 - 间隔重复算法、自动安排复习'
+    'v1.11.0': '错题复习计划 - 间隔重复算法、自动安排复习',
+    'v2.0.0': '视觉升级 - 主题系统、CSS变量、动画效果'
 };
+
+// 主题管理器
+class ThemeManager {
+    constructor() {
+        this.currentTheme = this.loadTheme();
+        this.customColor = this.loadCustomColor();
+        this.init();
+    }
+
+    init() {
+        this.applyTheme(this.currentTheme);
+        this.bindEvents();
+    }
+
+    loadTheme() {
+        return localStorage.getItem('java-quiz-theme') || 'light';
+    }
+
+    loadCustomColor() {
+        return localStorage.getItem('java-quiz-custom-color') || '#667eea';
+    }
+
+    saveTheme(theme) {
+        this.currentTheme = theme;
+        localStorage.setItem('java-quiz-theme', theme);
+    }
+
+    saveCustomColor(color) {
+        this.customColor = color;
+        localStorage.setItem('java-quiz-custom-color', color);
+    }
+
+    applyTheme(theme) {
+        if (theme === 'light') {
+            document.documentElement.removeAttribute('data-theme');
+        } else {
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+        this.updateThemeUI();
+    }
+
+    applyCustomColor(color) {
+        const root = document.documentElement;
+        root.style.setProperty('--accent-color', color);
+
+        // 生成浅色和深色变体
+        const lightColor = color + '20';
+        const darkColor = this.darkenColor(color, 20);
+        const gradient = `linear-gradient(135deg, ${color} 0%, ${darkColor} 100%)`;
+
+        root.style.setProperty('--accent-light', lightColor);
+        root.style.setProperty('--accent-dark', darkColor);
+        root.style.setProperty('--accent-gradient', gradient);
+
+        this.saveCustomColor(color);
+    }
+
+    darkenColor(hex, percent) {
+        const num = parseInt(hex.replace('#', ''), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = Math.max((num >> 16) - amt, 0);
+        const G = Math.max((num >> 8 & 0x00FF) - amt, 0);
+        const B = Math.max((num & 0x0000FF) - amt, 0);
+        return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+    }
+
+    updateThemeUI() {
+        // 更新主题选项的激活状态
+        document.querySelectorAll('.theme-option').forEach(option => {
+            option.classList.toggle('active', option.dataset.theme === this.currentTheme);
+        });
+
+        // 更新颜色选择器
+        const colorPicker = document.getElementById('custom-color');
+        const colorHex = document.getElementById('custom-color-hex');
+        if (colorPicker) colorPicker.value = this.customColor;
+        if (colorHex) colorHex.value = this.customColor;
+    }
+
+    togglePanel() {
+        const panel = document.getElementById('theme-panel');
+        panel.classList.toggle('show');
+    }
+
+    bindEvents() {
+        // 主题按钮点击
+        document.getElementById('theme-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.togglePanel();
+        });
+
+        // 点击其他地方关闭面板
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('theme-panel');
+            if (!panel.contains(e.target) && e.target.id !== 'theme-btn') {
+                panel.classList.remove('show');
+            }
+        });
+
+        // 预设主题选择
+        document.querySelectorAll('.theme-option').forEach(option => {
+            option.addEventListener('click', () => {
+                const theme = option.dataset.theme;
+                this.saveTheme(theme);
+                this.applyTheme(theme);
+                this.applyCustomColor(this.customColor); // 重新应用自定义颜色
+            });
+        });
+
+        // 自定义颜色选择器
+        const colorPicker = document.getElementById('custom-color');
+        const colorHex = document.getElementById('custom-color-hex');
+
+        if (colorPicker) {
+            colorPicker.addEventListener('input', (e) => {
+                const color = e.target.value;
+                colorHex.value = color;
+                this.applyCustomColor(color);
+            });
+        }
+
+        if (colorHex) {
+            colorHex.addEventListener('input', (e) => {
+                let color = e.target.value;
+                if (color.match(/^#[0-9A-Fa-f]{6}$/)) {
+                    colorPicker.value = color;
+                    this.applyCustomColor(color);
+                }
+            });
+
+            colorHex.addEventListener('change', (e) => {
+                let color = e.target.value;
+                if (!color.startsWith('#')) color = '#' + color;
+                if (color.match(/^#[0-9A-Fa-f]{6}$/)) {
+                    colorPicker.value = color;
+                    this.applyCustomColor(color);
+                }
+            });
+        }
+    }
+}
 
 // Supabase配置
 const SUPABASE_URL = 'https://lulhihbwzutrhulisryb.supabase.co';
@@ -995,6 +1137,9 @@ class QuizApp {
         // 计时器拖动相关
         this.isDragging = false;
         this.dragOffset = { x: 0, y: 0 };
+
+        // 主题管理器
+        this.themeManager = new ThemeManager();
 
         // 统计管理器
         this.statsManager = new StatsManager();
