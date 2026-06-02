@@ -9,6 +9,7 @@ class QuizApp {
         this.totalQuestions = 0;
         this.isReview = false;
         this.wrongQuestions = [];
+        this.answeredQuestions = new Set();
         this.init();
     }
 
@@ -57,6 +58,7 @@ class QuizApp {
         document.getElementById('chapter-select').value = '';
         document.getElementById('chapter-info').style.display = 'none';
         this.wrongQuestions = [];
+        this.answeredQuestions = new Set();
     }
 
     loadChapter(chapterKey) {
@@ -85,6 +87,7 @@ class QuizApp {
         this.answers = {};
         this.score = 0;
         this.isReview = false;
+        this.answeredQuestions = new Set();
 
         document.getElementById('home-page').style.display = 'none';
         document.getElementById('quiz-page').style.display = 'block';
@@ -105,6 +108,7 @@ class QuizApp {
         this.answers = {};
         this.score = 0;
         this.isReview = true;
+        this.answeredQuestions = new Set();
 
         document.getElementById('home-page').style.display = 'none';
         document.getElementById('quiz-page').style.display = 'block';
@@ -137,18 +141,34 @@ class QuizApp {
                 break;
         }
 
+        // 添加反馈区域
+        html += '<div id="feedback" class="feedback"></div>';
+
         container.innerHTML = html;
         this.updateButtons();
         this.bindAnswerEvents(question);
+
+        // 如果已经答过这道题，显示反馈
+        if (this.answeredQuestions.has(this.currentQuestionIndex)) {
+            this.showFeedback(question, this.answers[this.currentQuestionIndex]);
+        }
     }
 
     renderSingleChoice(question) {
         let html = '<div class="options">';
         question.options.forEach((option, index) => {
             const checked = this.answers[this.currentQuestionIndex] === index ? 'checked' : '';
+            let optionClass = 'option';
+            if (this.answeredQuestions.has(this.currentQuestionIndex)) {
+                if (index === question.answer) {
+                    optionClass += ' correct';
+                } else if (checked && index !== question.answer) {
+                    optionClass += ' wrong';
+                }
+            }
             html += `
-                <label class="option ${checked ? 'selected' : ''}">
-                    <input type="radio" name="answer" value="${index}" ${checked}>
+                <label class="${optionClass}">
+                    <input type="radio" name="answer" value="${index}" ${checked} ${this.answeredQuestions.has(this.currentQuestionIndex) ? 'disabled' : ''}>
                     <span class="option-letter">${String.fromCharCode(65 + index)}</span>
                     <span class="option-text">${option}</span>
                 </label>
@@ -163,9 +183,17 @@ class QuizApp {
         const selected = this.answers[this.currentQuestionIndex] || [];
         question.options.forEach((option, index) => {
             const checked = selected.includes(index) ? 'checked' : '';
+            let optionClass = 'option';
+            if (this.answeredQuestions.has(this.currentQuestionIndex)) {
+                if (question.answer.includes(index)) {
+                    optionClass += ' correct';
+                } else if (checked && !question.answer.includes(index)) {
+                    optionClass += ' wrong';
+                }
+            }
             html += `
-                <label class="option ${checked ? 'selected' : ''}">
-                    <input type="checkbox" name="answer" value="${index}" ${checked}>
+                <label class="${optionClass}">
+                    <input type="checkbox" name="answer" value="${index}" ${checked} ${this.answeredQuestions.has(this.currentQuestionIndex) ? 'disabled' : ''}>
                     <span class="option-letter">${String.fromCharCode(65 + index)}</span>
                     <span class="option-text">${option}</span>
                 </label>
@@ -181,9 +209,17 @@ class QuizApp {
         options.forEach((option, index) => {
             const value = index === 0 ? true : false;
             const checked = this.answers[this.currentQuestionIndex] === value ? 'checked' : '';
+            let optionClass = 'option';
+            if (this.answeredQuestions.has(this.currentQuestionIndex)) {
+                if (value === question.answer) {
+                    optionClass += ' correct';
+                } else if (checked && value !== question.answer) {
+                    optionClass += ' wrong';
+                }
+            }
             html += `
-                <label class="option ${checked ? 'selected' : ''}">
-                    <input type="radio" name="answer" value="${value}" ${checked}>
+                <label class="${optionClass}">
+                    <input type="radio" name="answer" value="${value}" ${checked} ${this.answeredQuestions.has(this.currentQuestionIndex) ? 'disabled' : ''}>
                     <span class="option-text">${option}</span>
                 </label>
             `;
@@ -196,10 +232,17 @@ class QuizApp {
         const saved = this.answers[this.currentQuestionIndex] || [];
         let html = '<div class="fill-inputs">';
         for (let i = 0; i < question.answer.length; i++) {
+            let inputClass = 'fill-input';
+            if (this.answeredQuestions.has(this.currentQuestionIndex) && saved[i] !== undefined) {
+                const isCorrect = saved[i].toLowerCase().replace(/\s+/g, '') ===
+                    question.answer[i].toLowerCase().replace(/\s+/g, '');
+                inputClass += isCorrect ? ' correct' : ' wrong';
+            }
             html += `
                 <div class="fill-item">
                     <label>空${i + 1}:</label>
-                    <input type="text" class="fill-input" data-index="${i}" value="${saved[i] || ''}" placeholder="请输入答案">
+                    <input type="text" class="${inputClass}" data-index="${i}" value="${saved[i] || ''}"
+                        placeholder="请输入答案" ${this.answeredQuestions.has(this.currentQuestionIndex) ? 'disabled' : ''}>
                 </div>
             `;
         }
@@ -208,6 +251,10 @@ class QuizApp {
     }
 
     bindAnswerEvents(question) {
+        if (this.answeredQuestions.has(this.currentQuestionIndex)) {
+            return; // 已经答过，不再绑定事件
+        }
+
         if (question.type === 'single' || question.type === 'judge') {
             document.querySelectorAll('input[name="answer"]').forEach(input => {
                 input.addEventListener('change', (e) => {
@@ -216,9 +263,11 @@ class QuizApp {
                     } else {
                         this.answers[this.currentQuestionIndex] = parseInt(e.target.value);
                     }
-                    // 更新选中样式
-                    document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
-                    e.target.closest('.option').classList.add('selected');
+
+                    // 立即显示反馈
+                    this.answeredQuestions.add(this.currentQuestionIndex);
+                    this.checkAnswer(question);
+                    this.renderQuestion();
                 });
             });
         } else if (question.type === 'multi') {
@@ -229,22 +278,134 @@ class QuizApp {
                         selected.push(parseInt(checked.value));
                     });
                     this.answers[this.currentQuestionIndex] = selected;
-                    // 更新选中样式
-                    document.querySelectorAll('.option').forEach(opt => {
-                        opt.classList.toggle('selected', opt.querySelector('input').checked);
-                    });
+
+                    // 多选题需要点击确认按钮
+                    if (!document.getElementById('confirm-multi')) {
+                        const confirmBtn = document.createElement('button');
+                        confirmBtn.id = 'confirm-multi';
+                        confirmBtn.className = 'btn btn-primary';
+                        confirmBtn.textContent = '确认答案';
+                        confirmBtn.style.marginTop = '10px';
+                        confirmBtn.addEventListener('click', () => {
+                            this.answeredQuestions.add(this.currentQuestionIndex);
+                            this.checkAnswer(question);
+                            this.renderQuestion();
+                        });
+                        document.querySelector('.options.multi').after(confirmBtn);
+                    }
                 });
             });
         } else if (question.type === 'fill') {
-            document.querySelectorAll('.fill-input').forEach(input => {
-                input.addEventListener('input', () => {
-                    const values = [];
-                    document.querySelectorAll('.fill-input').forEach(inp => {
-                        values.push(inp.value.trim());
-                    });
-                    this.answers[this.currentQuestionIndex] = values;
+            // 填空题添加确认按钮
+            const confirmBtn = document.createElement('button');
+            confirmBtn.id = 'confirm-fill';
+            confirmBtn.className = 'btn btn-primary';
+            confirmBtn.textContent = '确认答案';
+            confirmBtn.style.marginTop = '10px';
+            confirmBtn.addEventListener('click', () => {
+                const values = [];
+                document.querySelectorAll('.fill-input').forEach(inp => {
+                    values.push(inp.value.trim());
                 });
+                this.answers[this.currentQuestionIndex] = values;
+                this.answeredQuestions.add(this.currentQuestionIndex);
+                this.checkAnswer(question);
+                this.renderQuestion();
             });
+            document.querySelector('.fill-inputs').after(confirmBtn);
+        }
+    }
+
+    checkAnswer(question) {
+        const userAnswer = this.answers[this.currentQuestionIndex];
+        let isCorrect = false;
+
+        switch (question.type) {
+            case 'single':
+                isCorrect = userAnswer === question.answer;
+                break;
+            case 'multi':
+                isCorrect = Array.isArray(userAnswer) &&
+                    Array.isArray(question.answer) &&
+                    userAnswer.length === question.answer.length &&
+                    userAnswer.every(a => question.answer.includes(a));
+                break;
+            case 'judge':
+                isCorrect = userAnswer === question.answer;
+                break;
+            case 'fill':
+                if (Array.isArray(userAnswer) && Array.isArray(question.answer)) {
+                    isCorrect = userAnswer.length === question.answer.length &&
+                        userAnswer.every((a, i) =>
+                            a.toLowerCase().replace(/\s+/g, '') ===
+                            question.answer[i].toLowerCase().replace(/\s+/g, '')
+                        );
+                }
+                break;
+        }
+
+        if (isCorrect) {
+            this.score++;
+        } else {
+            if (!this.wrongQuestions.includes(question)) {
+                this.wrongQuestions.push({...question, userAnswer});
+            }
+        }
+    }
+
+    showFeedback(question, userAnswer) {
+        const feedback = document.getElementById('feedback');
+        if (!feedback) return;
+
+        const isCorrect = this.isAnswerCorrect(question, userAnswer);
+
+        let html = `<div class="feedback-box ${isCorrect ? 'correct' : 'wrong'}">`;
+        html += `<div class="feedback-icon">${isCorrect ? '✓ 回答正确！' : '✗ 回答错误'}</div>`;
+        html += `<div class="feedback-answer">正确答案：${this.getCorrectAnswerText(question)}</div>`;
+        html += `<div class="feedback-explanation">${question.explanation}</div>`;
+        html += '</div>';
+
+        feedback.innerHTML = html;
+        feedback.style.display = 'block';
+    }
+
+    isAnswerCorrect(question, userAnswer) {
+        switch (question.type) {
+            case 'single':
+                return userAnswer === question.answer;
+            case 'multi':
+                return Array.isArray(userAnswer) &&
+                    Array.isArray(question.answer) &&
+                    userAnswer.length === question.answer.length &&
+                    userAnswer.every(a => question.answer.includes(a));
+            case 'judge':
+                return userAnswer === question.answer;
+            case 'fill':
+                if (Array.isArray(userAnswer) && Array.isArray(question.answer)) {
+                    return userAnswer.length === question.answer.length &&
+                        userAnswer.every((a, i) =>
+                            a.toLowerCase().replace(/\s+/g, '') ===
+                            question.answer[i].toLowerCase().replace(/\s+/g, '')
+                        );
+                }
+                return false;
+            default:
+                return false;
+        }
+    }
+
+    getCorrectAnswerText(question) {
+        switch (question.type) {
+            case 'single':
+                return question.options[question.answer];
+            case 'multi':
+                return question.answer.map(i => question.options[i]).join(', ');
+            case 'judge':
+                return question.answer ? '正确' : '错误';
+            case 'fill':
+                return question.answer.join(', ');
+            default:
+                return '';
         }
     }
 
@@ -279,10 +440,10 @@ class QuizApp {
     }
 
     submitQuiz() {
-        // 检查是否所有题目都已作答
+        // 统计未答题数量
         const unanswered = [];
         for (let i = 0; i < this.totalQuestions; i++) {
-            if (this.answers[i] === undefined) {
+            if (!this.answeredQuestions.has(i)) {
                 unanswered.push(i + 1);
             }
         }
@@ -293,57 +454,17 @@ class QuizApp {
             }
         }
 
-        this.calculateScore();
         this.showResult();
-    }
-
-    calculateScore() {
-        this.score = 0;
-        this.wrongQuestions = [];
-
-        this.questions.forEach((question, index) => {
-            const userAnswer = this.answers[index];
-            let isCorrect = false;
-
-            switch (question.type) {
-                case 'single':
-                    isCorrect = userAnswer === question.answer;
-                    break;
-                case 'multi':
-                    isCorrect = Array.isArray(userAnswer) &&
-                        Array.isArray(question.answer) &&
-                        userAnswer.length === question.answer.length &&
-                        userAnswer.every(a => question.answer.includes(a));
-                    break;
-                case 'judge':
-                    isCorrect = userAnswer === question.answer;
-                    break;
-                case 'fill':
-                    if (Array.isArray(userAnswer) && Array.isArray(question.answer)) {
-                        isCorrect = userAnswer.length === question.answer.length &&
-                            userAnswer.every((a, i) =>
-                                a.toLowerCase().replace(/\s+/g, '') ===
-                                question.answer[i].toLowerCase().replace(/\s+/g, '')
-                            );
-                    }
-                    break;
-            }
-
-            if (isCorrect) {
-                this.score++;
-            } else {
-                this.wrongQuestions.push({...question, userAnswer});
-            }
-        });
     }
 
     showResult() {
         document.getElementById('quiz-page').style.display = 'none';
         document.getElementById('result-page').style.display = 'block';
 
-        const percentage = Math.round((this.score / this.totalQuestions) * 100);
-        document.getElementById('score').textContent = `${this.score} / ${this.totalQuestions}`;
-        document.getElementById('percentage').textContent = `${percentage}%`;
+        const totalAnswered = this.answeredQuestions.size;
+        const percentage = totalAnswered > 0 ? Math.round((this.score / totalAnswered) * 100) : 0;
+        document.getElementById('score').textContent = `${this.score} / ${totalAnswered}`;
+        document.getElementById('percentage').textContent = `正确率 ${percentage}%`;
 
         // 显示错题详情
         const wrongList = document.getElementById('wrong-list');
@@ -384,25 +505,12 @@ class QuizApp {
         }
     }
 
-    getCorrectAnswerText(question) {
-        switch (question.type) {
-            case 'single':
-                return question.options[question.answer];
-            case 'multi':
-                return question.answer.map(i => question.options[i]).join(', ');
-            case 'judge':
-                return question.answer ? '正确' : '错误';
-            case 'fill':
-                return question.answer.join(', ');
-            default:
-                return '';
-        }
-    }
-
     retryQuiz() {
         this.currentQuestionIndex = 0;
         this.answers = {};
         this.score = 0;
+        this.wrongQuestions = [];
+        this.answeredQuestions = new Set();
 
         document.getElementById('result-page').style.display = 'none';
         document.getElementById('quiz-page').style.display = 'block';

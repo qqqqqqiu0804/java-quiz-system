@@ -310,6 +310,84 @@ select:focus {
     border-top: 1px dashed #ddd;
 }
 
+/* 即时反馈样式 */
+.option.correct {
+    border-color: #11998e;
+    background: linear-gradient(135deg, #11998e15 0%, #38ef7d15 100%);
+}
+
+.option.correct .option-letter {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    color: white;
+}
+
+.option.wrong {
+    border-color: #f5576c;
+    background: linear-gradient(135deg, #f5576c15 0%, #f093fb15 100%);
+}
+
+.option.wrong .option-letter {
+    background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+    color: white;
+}
+
+.fill-input.correct {
+    border-color: #11998e;
+    background: #11998e15;
+}
+
+.fill-input.wrong {
+    border-color: #f5576c;
+    background: #f5576c15;
+}
+
+.feedback {
+    display: none;
+    margin-top: 20px;
+}
+
+.feedback-box {
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 15px;
+}
+
+.feedback-box.correct {
+    background: linear-gradient(135deg, #11998e15 0%, #38ef7d15 100%);
+    border: 2px solid #11998e;
+}
+
+.feedback-box.wrong {
+    background: linear-gradient(135deg, #f5576c15 0%, #f093fb15 100%);
+    border: 2px solid #f5576c;
+}
+
+.feedback-icon {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.feedback-box.correct .feedback-icon {
+    color: #11998e;
+}
+
+.feedback-box.wrong .feedback-icon {
+    color: #f5576c;
+}
+
+.feedback-answer {
+    color: #333;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.feedback-explanation {
+    color: #666;
+    font-style: italic;
+    line-height: 1.5;
+}
+
 /* 提示卡片 */
 .tips {
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);

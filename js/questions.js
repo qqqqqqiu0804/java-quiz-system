@@ -5,7 +5,7 @@ const questions = {
         questions: [
             {
                 type: "single",
-                question: "Sun公司于哪一年正式对外公布Java语言？",
+                question: "哪家公司于1995年正式对外公布Java语言？",
                 options: ["IBM", "Oracle", "Microsoft", "Sun"],
                 answer: 3,
                 explanation: "1995年Sun公司正式发布Java语言"
@@ -89,7 +89,7 @@ const questions = {
             },
             {
                 type: "single",
-                question: "Java语言具有许多优点和特点，哪个反映了JAVA程序并行机制的特点？",
+                question: "哪个反映了JAVA程序并行机制的特点？",
                 options: ["安全性", "多线程", "跨平台", "可移植"],
                 answer: 1,
                 explanation: "多线程反映了Java程序并行机制的特点"
@@ -110,7 +110,7 @@ const questions = {
             },
             {
                 type: "single",
-                question: "Java语言中数值数据的类型能自动转换，转换次序为？",
+                question: "Java语言中数值数据的自动转换次序为？",
                 options: ["byte→int→short→long→float→double", "byte→short→int→long→float→double", "byte→short→int→float→long→double", "short→byte→int→long→float→double"],
                 answer: 1,
                 explanation: "自动转换顺序：byte→short→int→long→float→double"
@@ -124,21 +124,21 @@ const questions = {
             },
             {
                 type: "single",
-                question: "已知如下定义：String s = \"story\"; 下面哪个语句不是合法的？",
+                question: "String s = \"story\"; 下面哪个语句不是合法的？",
                 options: ["s += \"books\"", "s = s + 100", "int len = s.length", "String t = s +\"abc\""],
                 answer: 2,
                 explanation: "String的长度用length()方法，不是length属性"
             },
             {
                 type: "single",
-                question: "以下java注释哪一种是文档注释？",
+                question: "以下哪种是文档注释？",
                 options: ["//This is comment", "/*This is comment", "/**This is comment*/", "/*This is comment*/"],
                 answer: 2,
                 explanation: "/** */是文档注释"
             },
             {
                 type: "single",
-                question: "以下java注释哪一种是多行注释？",
+                question: "以下哪种是多行注释？",
                 options: ["//This is comment", "/*This is comment", "/**This is comment*/", "/*This is comment*/"],
                 answer: 3,
                 explanation: "/* */是多行注释"
@@ -151,7 +151,7 @@ const questions = {
             },
             {
                 type: "judge",
-                question: "数据由高类型转换到低类型时候，采用强制转换，数据精度可能要受到损失。",
+                question: "数据由高类型转换到低类型时，采用强制转换，数据精度可能要受到损失。",
                 answer: true,
                 explanation: "正确。高转低需要强制转换，可能损失精度"
             },
@@ -218,12 +218,12 @@ const questions = {
             {
                 type: "fill",
                 question: "在Java中，小数默认为_______，如果要指定float类型请在小数后加_______。",
-                answer: ["double", "F/f"],
+                answer: ["double", "F"],
                 explanation: "小数默认是double，float需要加F或f后缀"
             },
             {
                 type: "fill",
-                question: "System.out.println(10+\".\"+20);控制台输出：_______",
+                question: "System.out.println(10+\".\"+20); 控制台输出：_______",
                 answer: ["10.20"],
                 explanation: "字符串拼接，输出10.20"
             },
@@ -266,8 +266,8 @@ const questions = {
             },
             {
                 type: "single",
-                question: "若a和b均是整型变量并已正确赋值，正确的switch语句为？",
-                options: ["switch(a+b); { ...... }", "switch( a+b*3.0 ) { ...... }", "switch a { ...... }", "switch ( a%b ) { ...... }"],
+                question: "若a和b均是整型变量，正确的switch语句为？",
+                options: ["switch(a+b); { }", "switch( a+b*3.0 ) { }", "switch a { }", "switch ( a%b ) { }"],
                 answer: 3,
                 explanation: "switch表达式必须是整数类型"
             },
@@ -321,6 +321,48 @@ const questions = {
                 explanation: "while(true)是死循环"
             },
             {
+                type: "single",
+                question: "System.out.println(10/3); 的输出结果是？",
+                options: ["3.33", "3", "3.0", "报错"],
+                answer: 1,
+                explanation: "整数除法，10/3=3"
+            },
+            {
+                type: "single",
+                question: "System.out.println(3.0/6*12); 的输出结果是？",
+                options: ["0", "6", "6.0", "0.0"],
+                answer: 2,
+                explanation: "浮点除法，3.0/6*12=6.0"
+            },
+            {
+                type: "single",
+                question: "System.out.println(\"*\"+10+20); 的输出结果是？",
+                options: ["*30", "*1020", "30*", "1020*"],
+                answer: 1,
+                explanation: "字符串拼接从左到右，\"*\"+10=\"*10\"，\"*10\"+20=\"*1020\""
+            },
+            {
+                type: "single",
+                question: "System.out.println(10+20+\"*\"); 的输出结果是？",
+                options: ["*30", "*1020", "30*", "1020*"],
+                answer: 2,
+                explanation: "先算10+20=30，再拼接\"*\"，结果是\"30*\""
+            },
+            {
+                type: "single",
+                question: "x的y次方在Java中怎么写？",
+                options: ["Math.pow(x,y)", "Math.power(x,y)", "x^y", "Math.sqrt(x,y)"],
+                answer: 0,
+                explanation: "Math.pow(x,y)表示x的y次方"
+            },
+            {
+                type: "single",
+                question: "赋值语句是？",
+                options: ["=", "==", "===", "!="],
+                answer: 0,
+                explanation: "=是赋值，==是比较相等"
+            },
+            {
                 type: "judge",
                 question: "switch语句中如果没有break，会穿透执行下一个case。",
                 answer: true,
@@ -358,27 +400,9 @@ const questions = {
             },
             {
                 type: "fill",
-                question: "System.out.println(10/3); 控制台输出：_______",
-                answer: ["3"],
-                explanation: "整数除法，10/3=3"
-            },
-            {
-                type: "fill",
-                question: "System.out.println(3.0/6*12); 控制台输出：_______",
-                answer: ["6.0"],
-                explanation: "浮点除法，3.0/6*12=6.0"
-            },
-            {
-                type: "fill",
-                question: "x的y次方在Java中写成：double d=_______；",
-                answer: ["Math.pow(x,y)"],
-                explanation: "Math.pow(x,y)表示x的y次方"
-            },
-            {
-                type: "fill",
-                question: "赋值语句是_______，关系运算符等号是_______。",
-                answer: ["=", "=="],
-                explanation: "=是赋值，==是比较相等"
+                question: "根号10在Java中写成：double d=_______；",
+                answer: ["Math.sqrt(10)"],
+                explanation: "Math.sqrt()求平方根"
             }
         ]
     },
@@ -429,17 +453,17 @@ const questions = {
             },
             {
                 type: "single",
-                question: "下面哪一个是正确的类的声明？",
-                options: ["public void HH｛…｝", "public class Move()｛…｝", "public class void number{}", "public class Car｛…｝"],
-                answer: 3,
-                explanation: "public class Car是正确的类声明"
+                question: "int[] ia=new int[10]; 将数组ia所有元素赋值为1的代码是？",
+                options: ["Arrays.fill(ia,1)", "Arrays.set(ia,1)", "ia.fill(1)", "ia.set(1)"],
+                answer: 0,
+                explanation: "Arrays.fill()方法填充数组"
             },
             {
                 type: "single",
-                question: "数组在内存中是如何存储的？",
-                options: ["链式存储", "顺序存储", "树形存储", "散列存储"],
+                question: "数组复制时，\"=\"将一个数组的什么传递给另一个数组？",
+                options: ["值", "引用", "副本", "克隆"],
                 answer: 1,
-                explanation: "数组在内存中顺序存储"
+                explanation: "=复制的是引用（地址），两个变量指向同一个数组"
             },
             {
                 type: "judge",
@@ -479,7 +503,7 @@ const questions = {
             },
             {
                 type: "fill",
-                question: "String s=\"abc\"; char[] ca=s._______();//String转换为字符数组",
+                question: "String s=\"abc\"; char[] ca=s._______();",
                 answer: ["toCharArray"],
                 explanation: "toCharArray()将String转为字符数组"
             },
@@ -572,10 +596,45 @@ const questions = {
             },
             {
                 type: "single",
-                question: "所谓类的封装是指在定义一个类时，将类中的属性私有化，即使用什么关键字来修饰？",
+                question: "类的封装是指将类中的属性私有化，使用什么关键字来修饰？",
                 options: ["public", "protected", "private", "static"],
                 answer: 2,
                 explanation: "private修饰私有属性"
+            },
+            {
+                type: "single",
+                question: "面向对象的三大特征是？",
+                options: ["封装、继承、多态", "封装、继承、抽象", "继承、多态、抽象", "封装、多态、抽象"],
+                answer: 0,
+                explanation: "面向对象三大特征：封装、继承、多态"
+            },
+            {
+                type: "single",
+                question: "创建或实例化对象一般通过什么方式来完成？",
+                options: ["new + 构造方法()", "类名 + 方法()", "对象 + 方法()", "直接调用"],
+                answer: 0,
+                explanation: "new + 构造方法()创建对象"
+            },
+            {
+                type: "single",
+                question: "定义在类中的变量被称为？",
+                options: ["局部变量", "成员变量", "静态变量", "常量"],
+                answer: 1,
+                explanation: "类中定义的是成员变量"
+            },
+            {
+                type: "single",
+                question: "在非静态成员方法中，可以使用什么关键字访问类的其它非静态成员？",
+                options: ["this", "super", "static", "final"],
+                answer: 0,
+                explanation: "this指当前对象"
+            },
+            {
+                type: "single",
+                question: "this指什么？",
+                options: ["父类对象", "当前对象", "子类对象", "静态对象"],
+                answer: 1,
+                explanation: "this指当前对象"
             },
             {
                 type: "judge",
@@ -800,6 +859,13 @@ const questions = {
                 explanation: "finally在return之前执行，会输出Finally"
             },
             {
+                type: "single",
+                question: "对于已经被定义过可能抛出异常的语句，在编程时应该？",
+                options: ["必须使用try/catch语句处理异常，或用throw将其抛出", "如果程序错误，必须使用try/catch语句处理异常", "可以置之不理", "只能使用try/catch语句处理"],
+                answer: 0,
+                explanation: "必须处理或抛出异常"
+            },
+            {
                 type: "judge",
                 question: "catch块后必须有finally块。",
                 answer: false,
@@ -967,7 +1033,7 @@ const questions = {
             },
             {
                 type: "single",
-                question: "Java中提供了一个类，它不但具有读写文件的功能，并且可以随机地从文件的任何位置开始执行读写数据的操作，这个类是？",
+                question: "Java中提供了一个类，可以随机地从文件的任何位置开始执行读写数据的操作，这个类是？",
                 options: ["FileInputStream", "FileOutputStream", "RandomAccessFile", "BufferedReader"],
                 answer: 2,
                 explanation: "RandomAccessFile支持随机读写"
@@ -985,6 +1051,13 @@ const questions = {
                 options: ["InputStream", "OutputStream", "PrintStream", "BufferedReader"],
                 answer: 2,
                 explanation: "System.out是PrintStream类的对象"
+            },
+            {
+                type: "single",
+                question: "Java中一个字符占用几个字节？",
+                options: ["1", "2", "4", "8"],
+                answer: 1,
+                explanation: "Java字符占2字节，使用Unicode编码"
             },
             {
                 type: "judge",
