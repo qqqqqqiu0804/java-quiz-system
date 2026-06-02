@@ -1,5 +1,5 @@
 // 版本信息
-const APP_VERSION = 'v1.7.0';
+const APP_VERSION = 'v1.8.0';
 const VERSION_NOTES = {
     'v1.0.0': '初始版本 - 基础刷题功能',
     'v1.1.0': '即时反馈 - 选择答案后立即显示对错',
@@ -8,7 +8,8 @@ const VERSION_NOTES = {
     'v1.4.0': '学习统计 - 答题概况、章节分析、学习趋势、数据导出',
     'v1.5.0': '登录系统 - 用户注册登录、云端数据同步',
     'v1.6.0': '功能增强 - 进度条、难度标记、题目收藏、题目搜索',
-    'v1.7.0': '历史记录 - 答题历史、错题导出'
+    'v1.7.0': '历史记录 - 答题历史、错题导出',
+    'v1.8.0': '成就系统 - 成就解锁、成就通知'
 };
 
 // Supabase配置
@@ -533,6 +534,111 @@ class HistoryManager {
     }
 }
 
+// 成就管理器
+class AchievementManager {
+    constructor() {
+        this.achievements = this.loadAchievements();
+        this.definitions = this.getAchievementDefinitions();
+    }
+
+    // 获取成就定义
+    getAchievementDefinitions() {
+        return [
+            { id: 'first_quiz', name: '初试牛刀', desc: '完成第一次答题', icon: '🎯', condition: (stats) => stats.totalAnswered >= 1 },
+            { id: 'quiz_10', name: '勤学苦练', desc: '累计答题10道', icon: '📝', condition: (stats) => stats.totalAnswered >= 10 },
+            { id: 'quiz_50', name: '学海无涯', desc: '累计答题50道', icon: '📚', condition: (stats) => stats.totalAnswered >= 50 },
+            { id: 'quiz_100', name: '百题大关', desc: '累计答题100道', icon: '🏆', condition: (stats) => stats.totalAnswered >= 100 },
+            { id: 'quiz_200', name: '题海战术', desc: '累计答题200道', icon: '💪', condition: (stats) => stats.totalAnswered >= 200 },
+            { id: 'quiz_500', name: '学霸之路', desc: '累计答题500道', icon: '👑', condition: (stats) => stats.totalAnswered >= 500 },
+            { id: 'accuracy_60', name: '及格万岁', desc: '正确率达到60%', icon: '✅', condition: (stats) => stats.totalAnswered >= 10 && (stats.totalCorrect / stats.totalAnswered) >= 0.6 },
+            { id: 'accuracy_80', name: '成绩优异', desc: '正确率达到80%', icon: '🌟', condition: (stats) => stats.totalAnswered >= 20 && (stats.totalCorrect / stats.totalAnswered) >= 0.8 },
+            { id: 'accuracy_90', name: '学霸本霸', desc: '正确率达到90%', icon: '💎', condition: (stats) => stats.totalAnswered >= 50 && (stats.totalCorrect / stats.totalAnswered) >= 0.9 },
+            { id: 'perfect_10', name: '十全十美', desc: '连续答对10题', icon: '🔥', condition: (stats) => stats.maxStreak >= 10 },
+            { id: 'perfect_20', name: '势不可挡', desc: '连续答对20题', icon: '⚡', condition: (stats) => stats.maxStreak >= 20 },
+            { id: 'perfect_50', name: '所向披靡', desc: '连续答对50题', icon: '🚀', condition: (stats) => stats.maxStreak >= 50 },
+            { id: 'chapter_all', name: '全面发展', desc: '完成所有章节练习', icon: '📖', condition: (stats) => stats.chaptersCompleted >= 7 },
+            { id: 'study_1h', name: '学海泛舟', desc: '累计学习1小时', icon: '⏰', condition: (stats) => stats.totalStudyTime >= 3600 },
+            { id: 'study_5h', name: '废寝忘食', desc: '累计学习5小时', icon: '🌙', condition: (stats) => stats.totalStudyTime >= 18000 },
+            { id: 'study_10h', name: '悬梁刺股', desc: '累计学习10小时', icon: '📖', condition: (stats) => stats.totalStudyTime >= 36000 },
+            { id: 'favorite_5', name: '收藏达人', desc: '收藏5道题目', icon: '❤️', condition: (stats) => stats.favoriteCount >= 5 },
+            { id: 'exam_1', name: '初入考场', desc: '完成第一次模拟考试', icon: '🎓', condition: (stats) => stats.examCount >= 1 },
+            { id: 'exam_5', name: '身经百战', desc: '完成5次模拟考试', icon: '🏅', condition: (stats) => stats.examCount >= 5 },
+        ];
+    }
+
+    // 加载已解锁成就
+    loadAchievements() {
+        const saved = localStorage.getItem('java-quiz-achievements');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                return [];
+            }
+        }
+        return [];
+    }
+
+    // 保存成就
+    saveAchievements() {
+        localStorage.setItem('java-quiz-achievements', JSON.stringify(this.achievements));
+    }
+
+    // 检查并解锁成就
+    checkAchievements(stats) {
+        const newAchievements = [];
+
+        this.definitions.forEach(def => {
+            const alreadyUnlocked = this.achievements.some(a => a.id === def.id);
+            if (!alreadyUnlocked && def.condition(stats)) {
+                const achievement = {
+                    id: def.id,
+                    name: def.name,
+                    desc: def.desc,
+                    icon: def.icon,
+                    unlockedAt: new Date().toISOString()
+                };
+                this.achievements.push(achievement);
+                newAchievements.push(achievement);
+            }
+        });
+
+        if (newAchievements.length > 0) {
+            this.saveAchievements();
+        }
+
+        return newAchievements;
+    }
+
+    // 获取所有成就（包含解锁状态）
+    getAllAchievements() {
+        return this.definitions.map(def => {
+            const unlocked = this.achievements.find(a => a.id === def.id);
+            return {
+                ...def,
+                unlocked: !!unlocked,
+                unlockedAt: unlocked ? unlocked.unlockedAt : null
+            };
+        });
+    }
+
+    // 获取已解锁成就数量
+    getUnlockedCount() {
+        return this.achievements.length;
+    }
+
+    // 获取总成就数量
+    getTotalCount() {
+        return this.definitions.length;
+    }
+
+    // 清除成就（用于测试）
+    clearAchievements() {
+        this.achievements = [];
+        this.saveAchievements();
+    }
+}
+
 // 刷题系统主程序
 class QuizApp {
     constructor() {
@@ -564,6 +670,9 @@ class QuizApp {
 
         // 历史记录管理器
         this.historyManager = new HistoryManager();
+
+        // 成就管理器
+        this.achievementManager = new AchievementManager();
 
         // 认证管理器
         this.authManager = new AuthManager();
@@ -962,6 +1071,11 @@ class QuizApp {
         // 切换到历史标签页时渲染历史记录
         if (tabName === 'history') {
             this.renderHistory();
+        }
+
+        // 切换到成就标签页时渲染成就列表
+        if (tabName === 'achievements') {
+            this.renderAchievements();
         }
     }
 
@@ -1411,6 +1525,116 @@ class QuizApp {
     deleteHistoryRecord(id) {
         this.historyManager.deleteRecord(id);
         this.renderHistory();
+    }
+
+    // 渲染成就列表
+    renderAchievements() {
+        const achievements = this.achievementManager.getAllAchievements();
+        const container = document.getElementById('achievement-list');
+        const unlockedCount = this.achievementManager.getUnlockedCount();
+        const totalCount = this.achievementManager.getTotalCount();
+
+        document.getElementById('achievement-unlocked').textContent = unlockedCount;
+        document.getElementById('achievement-total').textContent = totalCount;
+
+        let html = '';
+        achievements.forEach(a => {
+            const dateStr = a.unlockedAt ?
+                new Date(a.unlockedAt).toLocaleDateString() : '';
+
+            html += `
+                <div class="achievement-item ${a.unlocked ? 'unlocked' : 'locked'}">
+                    <div class="achievement-icon">${a.icon}</div>
+                    <div class="achievement-info">
+                        <div class="achievement-name">${a.name}</div>
+                        <div class="achievement-desc">${a.desc}</div>
+                        ${a.unlocked ?
+                            `<div class="achievement-date">解锁于 ${dateStr}</div>` :
+                            `<div class="achievement-locked-text">未解锁</div>`
+                        }
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    // 检查并显示新成就
+    checkAndShowAchievements() {
+        const stats = {
+            ...this.statsManager.getStats(),
+            maxStreak: this.getMaxStreak(),
+            chaptersCompleted: this.getCompletedChapters(),
+            favoriteCount: this.favoriteManager.getCount(),
+            examCount: this.getExamCount()
+        };
+
+        const newAchievements = this.achievementManager.checkAchievements(stats);
+
+        // 显示新成就通知
+        newAchievements.forEach((a, index) => {
+            setTimeout(() => {
+                this.showAchievementNotification(a);
+            }, index * 1500);
+        });
+    }
+
+    // 获取最大连续答对数
+    getMaxStreak() {
+        const saved = localStorage.getItem('java-quiz-max-streak');
+        return saved ? parseInt(saved) : 0;
+    }
+
+    // 保存最大连续答对数
+    saveMaxStreak(streak) {
+        const current = this.getMaxStreak();
+        if (streak > current) {
+            localStorage.setItem('java-quiz-max-streak', streak.toString());
+        }
+    }
+
+    // 获取已完成章节数
+    getCompletedChapters() {
+        const stats = this.statsManager.getStats();
+        let count = 0;
+        Object.values(stats.chapterStats).forEach(chapter => {
+            if (chapter.answered > 0) count++;
+        });
+        return count;
+    }
+
+    // 获取模拟考试次数
+    getExamCount() {
+        const history = this.historyManager.getHistory();
+        return history.filter(r => r.type === 'exam').length;
+    }
+
+    // 显示成就通知
+    showAchievementNotification(achievement) {
+        const notification = document.createElement('div');
+        notification.className = 'achievement-notification';
+        notification.innerHTML = `
+            <div class="achievement-notification-content">
+                <span class="achievement-notification-icon">${achievement.icon}</span>
+                <div>
+                    <div class="achievement-notification-title">🏆 成就解锁！</div>
+                    <div class="achievement-notification-name">${achievement.name}</div>
+                    <div class="achievement-notification-desc">${achievement.desc}</div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(notification);
+
+        // 动画显示
+        setTimeout(() => notification.classList.add('show'), 100);
+
+        // 3秒后移除
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
     }
 
     // 导出错题
@@ -2123,7 +2347,10 @@ class QuizApp {
             this.statsManager.recordAnswer(chapterKey, isCorrect);
         }
 
+        // 追踪连续答对
         if (isCorrect) {
+            this.currentStreak = (this.currentStreak || 0) + 1;
+            this.saveMaxStreak(this.currentStreak);
             this.score++;
             const wrongIndex = this.wrongQuestions.findIndex(q => q.question === question.question);
             if (wrongIndex !== -1) {
@@ -2131,6 +2358,7 @@ class QuizApp {
                 this.saveWrongQuestions();
             }
         } else {
+            this.currentStreak = 0;
             const exists = this.wrongQuestions.some(q => q.question === question.question);
             if (!exists) {
                 this.wrongQuestions.push({...question, userAnswer});
@@ -2411,6 +2639,9 @@ class QuizApp {
         } else {
             document.getElementById('wrong-section').style.display = 'none';
         }
+
+        // 检查成就
+        setTimeout(() => this.checkAndShowAchievements(), 500);
     }
 
     retryQuiz() {

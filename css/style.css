@@ -467,6 +467,124 @@ select:focus {
     gap: 10px;
 }
 
+/* 成就系统样式 */
+.achievement-summary {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+    color: #666;
+}
+
+.achievement-summary strong {
+    color: #667eea;
+    font-size: 1.3rem;
+}
+
+.achievement-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 15px;
+}
+
+.achievement-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    background: #f8f9fa;
+    transition: all 0.3s;
+}
+
+.achievement-item.unlocked {
+    border-color: #667eea;
+    background: linear-gradient(135deg, #667eea10 0%, #764ba210 100%);
+}
+
+.achievement-item.locked {
+    opacity: 0.6;
+    filter: grayscale(50%);
+}
+
+.achievement-icon {
+    font-size: 2.5rem;
+    min-width: 50px;
+    text-align: center;
+}
+
+.achievement-info {
+    flex: 1;
+}
+
+.achievement-name {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.achievement-desc {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.achievement-date {
+    font-size: 0.8rem;
+    color: #888;
+    margin-top: 4px;
+}
+
+.achievement-locked-text {
+    font-size: 0.85rem;
+    color: #aaa;
+    font-style: italic;
+}
+
+/* 成就通知样式 */
+.achievement-notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    z-index: 3000;
+    transition: transform 0.3s ease;
+}
+
+.achievement-notification.show {
+    transform: translateX(-50%) translateY(0);
+}
+
+.achievement-notification-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.achievement-notification-icon {
+    font-size: 2.5rem;
+}
+
+.achievement-notification-title {
+    font-size: 1rem;
+    opacity: 0.9;
+    margin-bottom: 5px;
+}
+
+.achievement-notification-name {
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
+.achievement-notification-desc {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
 /* 题目样式 */
 .question-text {
     font-size: 1.1rem;
