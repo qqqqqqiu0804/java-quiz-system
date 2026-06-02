@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Java期末考试刷题系统</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Java期末考试刷题系统</h1>
+            <p>系统整理的复习题库，助你轻松备考</p>
+        </header>
+
+        <!-- 首页 -->
+        <div id="home-page" class="page">
+            <div class="card">
+                <h2>选择章节</h2>
+                <select id="chapter-select">
+                    <option value="">-- 请选择章节 --</option>
+                    <option value="chapter1-2">第1-2章 语法基础</option>
+                    <option value="chapter3">第3章 流程控制</option>
+                    <option value="chapter4">第4章 数组和字符串</option>
+                    <option value="chapter5">第5章 面向对象基础</option>
+                    <option value="chapter6">第6章 面向对象高级</option>
+                    <option value="chapter7">第7章 异常</option>
+                    <option value="chapter9">第9章 IO流</option>
+                </select>
+                <div id="chapter-info" class="chapter-info"></div>
+                <div class="btn-group">
+                    <button id="start-btn" class="btn btn-primary">开始练习</button>
+                    <button id="wrong-btn" class="btn btn-warning">错题重做</button>
+                </div>
+            </div>
+
+            <div class="card tips">
+                <h3>使用说明</h3>
+                <ul>
+                    <li>选择章节后点击"开始练习"</li>
+                    <li>每题作答后点击"下一题"</li>
+                    <li>最后一题点击"提交答案"</li>
+                    <li>提交后可查看成绩和错题解析</li>
+                    <li>错题会自动保存，可随时重做</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 答题页 -->
+        <div id="quiz-page" class="page" style="display: none;">
+            <div class="quiz-header">
+                <span id="progress"></span>
+                <button id="home-btn" class="btn btn-small">返回首页</button>
+            </div>
+            <div class="card">
+                <div id="question-container"></div>
+                <div class="btn-group">
+                    <button id="prev-btn" class="btn">上一题</button>
+                    <button id="next-btn" class="btn btn-primary">下一题</button>
+                    <button id="submit-btn" class="btn btn-success" style="display: none;">提交答案</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 结果页 -->
+        <div id="result-page" class="page" style="display: none;">
+            <div class="card result-card">
+                <h2>答题完成！</h2>
+                <div class="score-display">
+                    <div class="score" id="score"></div>
+                    <div class="percentage" id="percentage"></div>
+                </div>
+                <div class="btn-group">
+                    <button id="retry-btn" class="btn btn-primary">再做一次</button>
+                    <button id="home-btn2" class="btn">返回首页</button>
+                </div>
+            </div>
+
+            <div id="wrong-section" class="card" style="display: none;">
+                <h3>错题解析</h3>
+                <div id="wrong-list"></div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Java期末考试刷题系统 © 2024</p>
+        </footer>
+    </div>
+
+    <script src="js/questions.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
