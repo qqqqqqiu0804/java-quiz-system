@@ -1,5 +1,5 @@
 // 版本信息
-const APP_VERSION = 'v1.9.0';
+const APP_VERSION = 'v1.10.0';
 const VERSION_NOTES = {
     'v1.0.0': '初始版本 - 基础刷题功能',
     'v1.1.0': '即时反馈 - 选择答案后立即显示对错',
@@ -10,7 +10,8 @@ const VERSION_NOTES = {
     'v1.6.0': '功能增强 - 进度条、难度标记、题目收藏、题目搜索',
     'v1.7.0': '历史记录 - 答题历史、错题导出',
     'v1.8.0': '成就系统 - 成就解锁、成就通知',
-    'v1.9.0': '题库管理 - 自定义题库、题库导入导出'
+    'v1.9.0': '题库管理 - 自定义题库、题库导入导出',
+    'v1.10.0': '键盘快捷键 - 上下键切换题目、数字/字母键选择选项'
 };
 
 // Supabase配置
@@ -1295,6 +1296,70 @@ class QuizApp {
                 alert('数据已清除！');
             }
         });
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            this.handleKeyboard(e);
+        });
+    }
+
+    // 处理键盘事件
+    handleKeyboard(e) {
+        // 检查是否在答题页面或考试页面
+        const quizPage = document.getElementById('quiz-page');
+        const examPage = document.getElementById('exam-page');
+        const isQuizActive = quizPage.style.display !== 'none';
+        const isExamActive = examPage.style.display !== 'none';
+
+        if (!isQuizActive && !isExamActive) return;
+
+        // 检查是否在输入框中
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        switch (e.key) {
+            case 'ArrowUp':
+            case 'ArrowLeft':
+                e.preventDefault();
+                if (isQuizActive) this.prevQuestion();
+                else if (isExamActive) this.prevExamQuestion();
+                break;
+
+            case 'ArrowDown':
+            case 'ArrowRight':
+            case 'Enter':
+                e.preventDefault();
+                if (isQuizActive) this.nextQuestion();
+                else if (isExamActive) this.nextExamQuestion();
+                break;
+
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+                // 数字键选择选项
+                e.preventDefault();
+                this.selectOptionByKey(parseInt(e.key) - 1);
+                break;
+
+            case 'a':
+            case 'b':
+            case 'c':
+            case 'd':
+                // 字母键选择选项
+                e.preventDefault();
+                this.selectOptionByKey(e.key.charCodeAt(0) - 97);
+                break;
+        }
+    }
+
+    // 通过键盘选择选项
+    selectOptionByKey(index) {
+        const options = document.querySelectorAll('input[name="answer"], input[name="exam-answer"]');
+        if (options.length > index) {
+            const option = options[index];
+            option.checked = true;
+            option.dispatchEvent(new Event('change', { bubbles: true }));
+        }
     }
 
     // 初始化计时器拖动
