@@ -14,8 +14,33 @@ class QuizApp {
     }
 
     init() {
+        this.loadWrongQuestions(); // 从localStorage加载错题
         this.bindEvents();
         this.showHome();
+    }
+
+    // 从localStorage加载错题
+    loadWrongQuestions() {
+        const saved = localStorage.getItem('java-quiz-wrong-questions');
+        if (saved) {
+            try {
+                this.wrongQuestions = JSON.parse(saved);
+            } catch (e) {
+                this.wrongQuestions = [];
+            }
+        }
+    }
+
+    // 保存错题到localStorage
+    saveWrongQuestions() {
+        localStorage.setItem('java-quiz-wrong-questions', JSON.stringify(this.wrongQuestions));
+    }
+
+    // 清除错题记录
+    clearWrongQuestions() {
+        this.wrongQuestions = [];
+        this.saveWrongQuestions();
+        alert('错题记录已清除！');
     }
 
     bindEvents() {
@@ -34,6 +59,13 @@ class QuizApp {
         // 错题重做按钮
         document.getElementById('wrong-btn').addEventListener('click', () => {
             this.reviewWrong();
+        });
+
+        // 清除错题按钮
+        document.getElementById('clear-wrong-btn').addEventListener('click', () => {
+            if (confirm('确定要清除所有错题记录吗？')) {
+                this.clearWrongQuestions();
+            }
         });
 
         // 上一题/下一题
@@ -57,8 +89,26 @@ class QuizApp {
         document.getElementById('result-page').style.display = 'none';
         document.getElementById('chapter-select').value = '';
         document.getElementById('chapter-info').style.display = 'none';
-        this.wrongQuestions = [];
         this.answeredQuestions = new Set();
+
+        // 更新错题数量显示
+        this.updateWrongCount();
+    }
+
+    // 更新错题数量显示
+    updateWrongCount() {
+        const wrongCount = document.getElementById('wrong-count');
+        const clearBtn = document.getElementById('clear-wrong-btn');
+        if (wrongCount) {
+            if (this.wrongQuestions.length > 0) {
+                wrongCount.textContent = `(${this.wrongQuestions.length}题)`;
+                wrongCount.style.display = 'inline';
+                if (clearBtn) clearBtn.style.display = 'inline-block';
+            } else {
+                wrongCount.style.display = 'none';
+                if (clearBtn) clearBtn.style.display = 'none';
+            }
+        }
     }
 
     loadChapter(chapterKey) {
@@ -346,9 +396,18 @@ class QuizApp {
 
         if (isCorrect) {
             this.score++;
+            // 如果之前是错题，现在答对了，从错题中移除
+            const wrongIndex = this.wrongQuestions.findIndex(q => q.question === question.question);
+            if (wrongIndex !== -1) {
+                this.wrongQuestions.splice(wrongIndex, 1);
+                this.saveWrongQuestions();
+            }
         } else {
-            if (!this.wrongQuestions.includes(question)) {
+            // 检查是否已经存在于错题中
+            const exists = this.wrongQuestions.some(q => q.question === question.question);
+            if (!exists) {
                 this.wrongQuestions.push({...question, userAnswer});
+                this.saveWrongQuestions(); // 保存到localStorage
             }
         }
     }
