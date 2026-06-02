@@ -1,3 +1,11 @@
+// 版本信息
+const APP_VERSION = 'v1.2.0';
+const VERSION_NOTES = {
+    'v1.0.0': '初始版本 - 基础刷题功能',
+    'v1.1.0': '即时反馈 - 选择答案后立即显示对错',
+    'v1.2.0': '错题持久化 - 错题自动保存到本地存储'
+};
+
 // 刷题系统主程序
 class QuizApp {
     constructor() {
@@ -17,6 +25,16 @@ class QuizApp {
         this.loadWrongQuestions(); // 从localStorage加载错题
         this.bindEvents();
         this.showHome();
+        this.showVersion(); // 显示版本信息
+    }
+
+    // 显示版本信息
+    showVersion() {
+        const versionEl = document.getElementById('version-info');
+        if (versionEl) {
+            versionEl.textContent = `当前版本：${APP_VERSION}`;
+            versionEl.title = Object.entries(VERSION_NOTES).map(([ver, note]) => `${ver}: ${note}`).join('\n');
+        }
     }
 
     // 从localStorage加载错题
@@ -363,6 +381,16 @@ class QuizApp {
                 this.renderQuestion();
             });
             document.querySelector('.fill-inputs').after(confirmBtn);
+        }
+
+        // 监听返回首页按钮，确保错题已保存
+        const homeBtn = document.getElementById('home-btn');
+        if (homeBtn) {
+            homeBtn.onclick = () => {
+                // 保存当前状态
+                this.saveWrongQuestions();
+                this.showHome();
+            };
         }
     }
 
