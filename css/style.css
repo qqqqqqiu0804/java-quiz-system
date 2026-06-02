@@ -400,6 +400,73 @@ select:focus {
     margin-bottom: 10px;
 }
 
+/* 答题历史样式 */
+.history-item {
+    padding: 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    background: white;
+    transition: all 0.3s;
+}
+
+.history-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.history-date {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.history-type {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.history-type.chapter {
+    background: #667eea20;
+    color: #667eea;
+}
+
+.history-type.random {
+    background: #11998e20;
+    color: #11998e;
+}
+
+.history-type.exam {
+    background: #f093fb20;
+    color: #f093fb;
+}
+
+.history-score {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #667eea;
+    margin: 10px 0;
+}
+
+.history-details {
+    color: #666;
+    font-size: 0.95rem;
+}
+
+.history-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+}
+
 /* 题目样式 */
 .question-text {
     font-size: 1.1rem;

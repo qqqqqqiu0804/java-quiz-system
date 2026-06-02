@@ -1,5 +1,5 @@
 // 版本信息
-const APP_VERSION = 'v1.6.0';
+const APP_VERSION = 'v1.7.0';
 const VERSION_NOTES = {
     'v1.0.0': '初始版本 - 基础刷题功能',
     'v1.1.0': '即时反馈 - 选择答案后立即显示对错',
@@ -7,7 +7,8 @@ const VERSION_NOTES = {
     'v1.3.0': '随机刷题 - 标签页切换、随机刷题、模拟考试',
     'v1.4.0': '学习统计 - 答题概况、章节分析、学习趋势、数据导出',
     'v1.5.0': '登录系统 - 用户注册登录、云端数据同步',
-    'v1.6.0': '功能增强 - 进度条、难度标记、题目收藏、题目搜索'
+    'v1.6.0': '功能增强 - 进度条、难度标记、题目收藏、题目搜索',
+    'v1.7.0': '历史记录 - 答题历史、错题导出'
 };
 
 // Supabase配置
@@ -467,6 +468,71 @@ class FavoriteManager {
     }
 }
 
+// 答题历史管理器
+class HistoryManager {
+    constructor() {
+        this.history = this.loadHistory();
+    }
+
+    // 加载历史记录
+    loadHistory() {
+        const saved = localStorage.getItem('java-quiz-history');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                return [];
+            }
+        }
+        return [];
+    }
+
+    // 保存历史记录
+    saveHistory() {
+        localStorage.setItem('java-quiz-history', JSON.stringify(this.history));
+    }
+
+    // 添加历史记录
+    addRecord(record) {
+        const newRecord = {
+            id: Date.now(),
+            date: new Date().toISOString(),
+            ...record
+        };
+        this.history.unshift(newRecord); // 添加到开头
+
+        // 只保留最近50条记录
+        if (this.history.length > 50) {
+            this.history = this.history.slice(0, 50);
+        }
+
+        this.saveHistory();
+        return newRecord;
+    }
+
+    // 获取所有历史记录
+    getHistory() {
+        return [...this.history];
+    }
+
+    // 获取历史记录数量
+    getCount() {
+        return this.history.length;
+    }
+
+    // 清除历史记录
+    clearHistory() {
+        this.history = [];
+        this.saveHistory();
+    }
+
+    // 删除单条记录
+    deleteRecord(id) {
+        this.history = this.history.filter(r => r.id !== id);
+        this.saveHistory();
+    }
+}
+
 // 刷题系统主程序
 class QuizApp {
     constructor() {
@@ -495,6 +561,9 @@ class QuizApp {
 
         // 收藏管理器
         this.favoriteManager = new FavoriteManager();
+
+        // 历史记录管理器
+        this.historyManager = new HistoryManager();
 
         // 认证管理器
         this.authManager = new AuthManager();
@@ -677,6 +746,19 @@ class QuizApp {
         // 收藏按钮（答题页）
         document.getElementById('favorite-question-btn').addEventListener('click', () => {
             this.toggleFavoriteCurrentQuestion();
+        });
+
+        // 历史记录相关
+        document.getElementById('clear-history-btn').addEventListener('click', () => {
+            if (confirm('确定要清除所有答题历史吗？')) {
+                this.historyManager.clearHistory();
+                this.renderHistory();
+                alert('历史记录已清除！');
+            }
+        });
+
+        document.getElementById('export-wrong-btn').addEventListener('click', () => {
+            this.exportWrongQuestions();
         });
 
         // 随机刷题相关
@@ -875,6 +957,11 @@ class QuizApp {
         // 切换到统计标签页时渲染统计面板
         if (tabName === 'stats') {
             this.renderStats();
+        }
+
+        // 切换到历史标签页时渲染历史记录
+        if (tabName === 'history') {
+            this.renderHistory();
         }
     }
 
@@ -1274,6 +1361,96 @@ class QuizApp {
         const el = document.getElementById('auth-message');
         el.textContent = message;
         el.className = 'auth-message ' + type;
+    }
+
+    // 渲染答题历史
+    renderHistory() {
+        const history = this.historyManager.getHistory();
+        const container = document.getElementById('history-list');
+
+        if (history.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #888;">暂无答题记录</p>';
+            return;
+        }
+
+        let html = '';
+        history.forEach(record => {
+            const date = new Date(record.date);
+            const dateStr = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')} ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
+
+            const typeText = record.type === 'chapter' ? '章节练习' :
+                             record.type === 'random' ? '随机刷题' :
+                             record.type === 'exam' ? '模拟考试' : '练习';
+
+            const typeClass = record.type || 'chapter';
+
+            const percentage = record.total > 0 ? Math.round((record.correct / record.total) * 100) : 0;
+
+            html += `
+                <div class="history-item">
+                    <div class="history-header">
+                        <span class="history-date">${dateStr}</span>
+                        <span class="history-type ${typeClass}">${typeText}</span>
+                    </div>
+                    <div class="history-score">${record.correct} / ${record.total} (${percentage}%)</div>
+                    <div class="history-details">
+                        ${record.chapterName || ''}
+                        ${record.wrongCount > 0 ? ` | 错题: ${record.wrongCount}道` : ''}
+                    </div>
+                    <div class="history-actions">
+                        <button class="btn btn-small" onclick="app.deleteHistoryRecord(${record.id})">删除</button>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    // 删除单条历史记录
+    deleteHistoryRecord(id) {
+        this.historyManager.deleteRecord(id);
+        this.renderHistory();
+    }
+
+    // 导出错题
+    exportWrongQuestions() {
+        const wrongQuestions = this.wrongQuestions;
+        if (wrongQuestions.length === 0) {
+            alert('没有错题可以导出！');
+            return;
+        }
+
+        let content = 'Java期末考试 - 错题集\n';
+        content += '========================\n\n';
+        content += `导出时间：${new Date().toLocaleString()}\n`;
+        content += `错题数量：${wrongQuestions.length}道\n\n`;
+
+        wrongQuestions.forEach((q, index) => {
+            content += `${index + 1}. ${q.question}\n`;
+            content += `   难度：${this.getDifficultyText(q.difficulty) || '未知'}\n`;
+
+            if (q.options) {
+                q.options.forEach((opt, i) => {
+                    content += `   ${String.fromCharCode(65+i)}. ${opt}\n`;
+                });
+            }
+
+            content += `   正确答案：${this.getCorrectAnswerText(q)}\n`;
+            content += `   解析：${q.explanation}\n`;
+            content += '\n';
+        });
+
+        // 创建下载
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `错题集_${new Date().toISOString().split('T')[0]}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        alert('错题导出成功！');
     }
 
     showHome() {
@@ -2196,6 +2373,25 @@ class QuizApp {
         const percentage = totalAnswered > 0 ? Math.round((this.score / totalAnswered) * 100) : 0;
         document.getElementById('score').textContent = `${this.score} / ${totalAnswered}`;
         document.getElementById('percentage').textContent = `正确率 ${percentage}%`;
+
+        // 保存历史记录
+        const record = {
+            type: this.isExamMode ? 'exam' : (this.isReview ? 'chapter' : 'chapter'),
+            total: totalAnswered,
+            correct: this.score,
+            wrongCount: this.wrongQuestions.length,
+            chapterName: this.currentChapter ? questions[this.currentChapter]?.name : ''
+        };
+
+        if (this.isExamMode) {
+            record.type = 'exam';
+        } else if (this.isReview) {
+            record.type = 'chapter';
+        } else {
+            record.type = this.currentChapter ? 'chapter' : 'random';
+        }
+
+        this.historyManager.addRecord(record);
 
         const wrongList = document.getElementById('wrong-list');
         if (this.wrongQuestions.length > 0) {

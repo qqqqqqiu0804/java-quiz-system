@@ -70,6 +70,7 @@
                 <button class="tab" data-tab="random">随机刷题</button>
                 <button class="tab" data-tab="exam">模拟考试</button>
                 <button class="tab" data-tab="stats">学习统计</button>
+                <button class="tab" data-tab="history">答题历史</button>
             </div>
 
             <!-- 章节练习标签页 -->
@@ -275,6 +276,20 @@
                         <button id="clear-stats-btn" class="btn btn-danger">清除数据</button>
                     </div>
                     <input type="file" id="import-file" accept=".json" style="display: none;">
+                </div>
+            </div>
+
+            <!-- 答题历史标签页 -->
+            <div id="tab-history" class="tab-content">
+                <div class="card">
+                    <h2>答题历史</h2>
+                    <div class="btn-group" style="margin-bottom: 20px;">
+                        <button id="clear-history-btn" class="btn btn-danger">清除历史</button>
+                        <button id="export-wrong-btn" class="btn btn-primary">导出错题</button>
+                    </div>
+                    <div id="history-list">
+                        <p style="text-align: center; color: #888;">暂无答题记录</p>
+                    </div>
                 </div>
             </div>
         </div>
